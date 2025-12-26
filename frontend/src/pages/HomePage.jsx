@@ -37,7 +37,7 @@ export default function HomePage({ onNavigate }) {
     "/img1.jpg",
     "/pics4.jpg",
     "/pics3.jpg",
-    "/img4.jpg",
+    "/pics2.jpg",
   ];
 
   useEffect(() => {
