@@ -98,7 +98,11 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
     <Modal isOpen={isOpen} onClose={onClose} size="md">
       <div className="max-w-md mx-auto h-[70vh] ">
         <div className="flex justify-center">
-          <img src="logo1.png" alt="Adunni Trading Hub" className="h-32 w-32" />
+          <img
+            src="/logo1.png"
+            alt="Adunni Trading Hub"
+            className="h-32 w-32"
+          />
         </div>
         <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">
           {mode === "login" ? "Welcome Back" : "Create Account"}

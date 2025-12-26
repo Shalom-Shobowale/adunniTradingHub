@@ -30,7 +30,7 @@ export function Modal({ isOpen, onClose, title, children, size = "md" }) {
         onClick={onClose}
       />
       <div className="flex md:flex-row flex-col w-[80%]">
-        <div className=" hidden md:flex bg-red-700 w-[60%] min-h-[70vh] relative rounded-l-2xl bg-[url(good.png)] bg-no-repeat bg-center bg-cover">
+        <div className=" hidden md:flex bg-red-700 w-[60%] min-h-[70vh] relative rounded-l-2xl bg-[url(/good.png)] bg-no-repeat bg-center bg-cover">
           <h1 className="text-white font-semibold">today is a good day</h1>
         </div>
 

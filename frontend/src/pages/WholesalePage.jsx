@@ -115,7 +115,7 @@ export default function WholesalePage({ onNavigate }) {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <section className="bg-[url('bg.png')] bg-no-repeat bg-center bg-cover text-white h-[50vh] flex flex-col justify-center text-center">
+      <section className="bg-[url('/bg.png')] bg-no-repeat bg-center bg-cover text-white h-[50vh] flex flex-col justify-center text-center">
         <h1 className="text-4xl md:text-5xl font-bold mb-4 font-vibes">
           Wholesale Solutions
         </h1>
