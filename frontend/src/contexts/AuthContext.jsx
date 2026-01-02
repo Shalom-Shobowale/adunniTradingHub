@@ -28,17 +28,19 @@ export function AuthProvider({ children }) {
       }
 
       // Subscribe to auth state changes
-      authSubscription = supabase.auth.onAuthStateChange(async (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
+      authSubscription = supabase.auth.onAuthStateChange(
+        async (_event, session) => {
+          setSession(session);
+          setUser(session?.user ?? null);
 
-        if (session?.user) {
-          await loadProfile(session.user.id);
-        } else {
-          setProfile(null);
-          setLoading(false);
+          if (session?.user) {
+            await loadProfile(session.user.id);
+          } else {
+            setProfile(null);
+            setLoading(false);
+          }
         }
-      });
+      );
     };
 
     initAuth();
@@ -83,11 +85,13 @@ export function AuthProvider({ children }) {
           business_registration: userData.business_registration || null,
           wholesale_approved: false,
         });
-
         if (profileError) throw profileError;
       }
 
-      return { error: null };
+      // If session is null, user needs email confirmation
+      const requiresConfirmation = !data.session;
+
+      return { error: null, requiresConfirmation };
     } catch (error) {
       return { error };
     }
@@ -95,7 +99,10 @@ export function AuthProvider({ children }) {
 
   const signIn = async (email, password) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
       if (error) throw error;
       return { error: null };
     } catch (error) {
@@ -116,7 +123,8 @@ export function AuthProvider({ children }) {
 
   const isAdmin = profile?.account_type === "admin";
   const isWholesale = profile?.account_type === "wholesale";
-  const isWholesaleApproved = isWholesale && profile?.wholesale_approved === true;
+  const isWholesaleApproved =
+    isWholesale && profile?.wholesale_approved === true;
 
   const value = {
     user,

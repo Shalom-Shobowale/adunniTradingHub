@@ -4,7 +4,7 @@ export default function Section() {
   const [hoveredIndex, setHoveredIndex] = useState(null);
 
   return (
-    <div className="w-[80%] mx-auto my-10">
+    <div className="md:w-[80%] w-[90%] mx-auto">
       {/* Simple Gallery Layout - Keeping your original arrangement */}
       <div className="flex flex-col lg:flex-row gap-4 lg:gap-5">
         

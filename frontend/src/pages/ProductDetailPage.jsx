@@ -347,7 +347,7 @@ export default function ProductDetailPage({ productId, onNavigate }) {
 
             {/* Price Section */}
             <Card className="mb-8 bg-linear-to-r from-amber-50 to-white border border-amber-100">
-              <div className="p-6">
+              <div className="p-0 md:p-6">
                 <div className="flex items-end justify-between mb-4">
                   <div>
                     <div className="text-4xl font-bold text-[#CA993B]">
@@ -382,7 +382,7 @@ export default function ProductDetailPage({ productId, onNavigate }) {
 
                 {/* Quantity Selector */}
                 {product.stock_quantity > 0 && (
-                  <div className="flex items-center space-x-4">
+                  <div className="flex flex-col md:flex-row md:items-center space-x-4 space-y-4">
                     <div className="flex-1">
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Quantity
@@ -436,7 +436,7 @@ export default function ProductDetailPage({ productId, onNavigate }) {
                         variant="outline"
                         size="lg"
                         onClick={handleAddToWishlist}
-                        className="border-[#CA993B] text-[#CA993B] hover:bg-[#CA993B]/10"
+                        className="border-[#CA993B] text-[#CA993B] hover:bg-[#CA993B]/25"
                       >
                         <Heart className="h-5 w-5 mr-2" />
                         Add to Wishlist

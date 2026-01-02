@@ -9,6 +9,7 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
   const { signIn, signUp } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [confirmationSent, setConfirmationSent] = useState(false);
 
   const [loginData, setLoginData] = useState({
     email: "",
@@ -46,6 +47,7 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
   const handleSignup = async (e) => {
     e.preventDefault();
     setError("");
+    setConfirmationSent(false);
 
     if (signupData.password !== signupData.confirmPassword) {
       setError("Passwords do not match");
@@ -60,33 +62,48 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
     setLoading(true);
 
     try {
-      const { error } = await signUp(signupData.email, signupData.password, {
-        full_name: signupData.full_name,
-        phone: signupData.phone,
-        account_type: signupData.account_type,
-        company_name:
-          signupData.account_type === "wholesale"
-            ? signupData.company_name
-            : undefined,
-        business_registration:
-          signupData.account_type === "wholesale"
-            ? signupData.business_registration
-            : undefined,
-      });
+      // Call signUp and get confirmation flag
+      const { error, requiresConfirmation } = await signUp(
+        signupData.email,
+        signupData.password,
+        {
+          full_name: signupData.full_name,
+          phone: signupData.phone,
+          account_type: signupData.account_type,
+          company_name:
+            signupData.account_type === "wholesale"
+              ? signupData.company_name
+              : undefined,
+          business_registration:
+            signupData.account_type === "wholesale"
+              ? signupData.business_registration
+              : undefined,
+        }
+      );
 
       if (error) throw error;
 
-      onClose();
-      setSignupData({
-        email: "",
-        password: "",
-        confirmPassword: "",
-        full_name: "",
-        phone: "",
-        account_type: "retail",
-        company_name: "",
-        business_registration: "",
-      });
+      if (requiresConfirmation) {
+        setConfirmationSent(true);
+        // Optionally clear password fields but keep email so user knows where to check
+        setSignupData((prev) => ({
+          ...prev,
+          password: "",
+          confirmPassword: "",
+        }));
+      } else {
+        onClose();
+        setSignupData({
+          email: "",
+          password: "",
+          confirmPassword: "",
+          full_name: "",
+          phone: "",
+          account_type: "retail",
+          company_name: "",
+          business_registration: "",
+        });
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to sign up");
     } finally {
@@ -116,6 +133,13 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             {error}
+          </div>
+        )}
+        {confirmationSent && (
+          <div className="bg-yellow-50 border border-yellow-300 text-yellow-700 px-4 py-3 rounded-lg mb-4">
+            A confirmation email has been sent to{" "}
+            <strong>{signupData.email}</strong>. Please check your inbox and
+            follow the instructions to complete your registration.
           </div>
         )}
 

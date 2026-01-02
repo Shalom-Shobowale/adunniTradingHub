@@ -2,13 +2,19 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import sendWholesaleEmailRouter from "./sendWholesaleEmail.js";
-import process from "process";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 const app = express();
-app.use(cors());
+
+// Middleware
+app.use(cors({
+  origin: "http://localhost:3000" // change if your frontend runs somewhere else
+}));
 app.use(bodyParser.json());
 
-// Mount your route
+// Mount the route
 app.use("/sendWholesaleEmail", sendWholesaleEmailRouter);
 
 const PORT = process.env.PORT || 5000;
