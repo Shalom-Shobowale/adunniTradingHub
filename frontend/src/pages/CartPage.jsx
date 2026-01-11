@@ -123,7 +123,12 @@ export default function CartPage({ onNavigate }) {
                         <h3 className="font-bold text-xl text-gray-900 mb-2 line-clamp-1">
                           {item.product.name}
                         </h3>
-                        <div className="flex flex-wrap gap-2 mb-3">
+                        {item.price < item.product.retail_price && (
+                          <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded ">
+                            WHOLESALE PRICE
+                          </span>
+                        )}
+                        <div className="flex flex-wrap gap-2 my-3">
                           <span className="text-sm px-2 py-1 bg-gray-100 text-gray-700 rounded">
                             {item.product.grade}
                           </span>
@@ -137,12 +142,10 @@ export default function CartPage({ onNavigate }) {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-bold text-[#CA993B] mb-1">
-                          {formatCurrency(
-                            item.product.retail_price * item.quantity
-                          )}
+                          {formatCurrency(item.price * item.quantity)}
                         </div>
                         <div className="text-sm text-gray-600">
-                          {formatCurrency(item.product.retail_price)} each
+                          {formatCurrency(item.price)} each
                         </div>
                       </div>
                     </div>

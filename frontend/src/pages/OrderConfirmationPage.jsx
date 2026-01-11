@@ -16,13 +16,31 @@ export default function OrderConfirmationPage({ orderNumber, onNavigate }) {
             Order Placed Successfully!
           </h1>
           <p className="text-gray-600 text-lg mb-8">
-            Thank you for your order. We've received your order and will process
-            it shortly.
+            You will receive an email confirmation once your payment has been
+            successfully verified. We’ll notify you again when your order ships.
           </p>
 
           <div className="bg-gray-50 rounded-lg p-6 mb-8">
             <p className="text-gray-600 mb-2">Your Order Number</p>
             <p className="text-2xl font-bold text-[#CA993B]">{orderNumber}</p>
+          </div>
+
+          <div className="bg-yellow-50 border border-yellow-300 p-4 rounded-lg mb-6">
+            <h2 className="font-bold mb-2">Bank Transfer Details</h2>
+
+            <p>
+              <strong>Bank Name:</strong> Wema Bank
+            </p>
+            <p>
+              <strong>Account Name:</strong> Bakare Risikat
+            </p>
+            <p>
+              <strong>Account Number:</strong> 0222871716
+            </p>
+
+            <p className="mt-3 text-sm text-red-600">
+              ⚠️ Use <strong>{orderNumber}</strong> as your payment reference.
+            </p>
           </div>
 
           <div className="space-y-4 text-left mb-8">

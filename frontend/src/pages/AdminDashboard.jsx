@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [products, setProducts] = useState([]);
   const [orders, setOrders] = useState([]);
+  const [profiles, setProfiles] = useState([]);
   const [stats, setStats] = useState({
     totalProducts: 0,
     totalOrders: 0,
@@ -47,46 +48,145 @@ export default function AdminDashboard() {
     featured_badge: "",
     active: true,
   });
+  const [wholesaleTabData, setWholesaleTabData] = useState([]);
+  const [showWholesaleModal, setShowWholesaleModal] = useState(false);
+  const [editingWholesale, setEditingWholesale] = useState(null);
+  const [wholesaleForm, setWholesaleForm] = useState({
+    product_id: "",
+    min_quantity: 5,
+    max_quantity: 100,
+    price_per_unit: 0,
+  });
 
   // Load data from Supabase
   useEffect(() => {
     const loadData = async () => {
       let productsData = [];
       let ordersData = [];
+      let profilesData = [];
+      let wholesaleData = [];
 
-      if (activeTab === "products" || activeTab === "overview") {
-        const { data: productsRes } = await supabase
-          .from("products")
-          .select("*")
-          .order("created_at", { ascending: false });
-        productsData = productsRes || [];
-        setProducts(productsData);
+      try {
+        // 1️⃣ Get logged-in session
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session) {
+          throw new Error("Not authenticated");
+        }
+
+        const token = session.access_token;
+
+        const authHeaders = {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        };
+
+        // 2️⃣ PRODUCTS
+        if (
+          activeTab === "products" ||
+          activeTab === "overview" ||
+          activeTab === "wholesale"
+        ) {
+          const res = await fetch("http://localhost:5000/products", {
+            headers: authHeaders,
+          });
+          productsData = await res.json();
+          setProducts(productsData || []);
+        }
+
+        // 3️⃣ ORDERS (ADMIN ONLY)
+        if (activeTab === "orders" || activeTab === "overview") {
+          const res = await fetch("http://localhost:5000/admin/orders", {
+            headers: authHeaders,
+          });
+          ordersData = await res.json();
+          setOrders(ordersData || []);
+        }
+
+        // 4️⃣ PROFILES (ADMIN ONLY)
+        if (activeTab === "profiles") {
+          const res = await fetch("http://localhost:5000/admin/users", {
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!res.ok) {
+            console.error("Failed to load profiles:", res.status);
+            setProfiles([]);
+            return;
+          }
+
+          profilesData = await res.json();
+
+          setProfiles(Array.isArray(profilesData) ? profilesData : []);
+        }
+
+        // 5️⃣ WHOLESALE PRICING
+        if (activeTab === "wholesale") {
+          const res = await fetch("http://localhost:5000/admin/wholesale", {
+            headers: authHeaders, // make sure this includes Authorization
+          });
+
+          if (!res.ok) {
+            console.error("Failed to load wholesale data:", res.status);
+            setWholesaleTabData([]);
+            return;
+          }
+
+          wholesaleData = await res.json();
+          setWholesaleTabData(
+            Array.isArray(wholesaleData) ? wholesaleData : []
+          );
+        }
+
+        // 6️⃣ SAFE STATS
+        const revenue = Array.isArray(ordersData)
+          ? ordersData.reduce((sum, order) => sum + (order.total || 0), 0)
+          : 0;
+
+        setStats({
+          totalProducts: productsData.length,
+          totalOrders: ordersData.length,
+          revenue,
+        });
+      } catch (error) {
+        console.error("Error loading data:", error.message);
       }
-
-      if (activeTab === "orders" || activeTab === "overview") {
-        const { data: ordersRes } = await supabase
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false });
-        ordersData = ordersRes || [];
-        setOrders(ordersData);
-      }
-
-      // Calculate stats safely
-      const revenue =
-        ordersData?.reduce((sum, order) => sum + (order.total || 0), 0) || 0;
-      setStats({
-        totalProducts: productsData.length,
-        totalOrders: ordersData.length,
-        revenue,
-      });
     };
 
     loadData();
   }, [activeTab]);
 
+  // AdminDashboard.jsx
+
+  const adminFetch = async (url, options = {}) => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) throw new Error("Not authenticated");
+
+    const headers = {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+      ...options.headers,
+    };
+
+    const res = await fetch(url, { ...options, headers });
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(errText || "Request failed");
+    }
+
+    return res.json();
+  };
+
   const handleProductSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const productData = {
         name: productForm.name,
@@ -99,7 +199,8 @@ export default function AdminDashboard() {
         min_wholesale_quantity: parseInt(productForm.min_wholesale_quantity),
         featured: productForm.featured,
         images: productForm.images,
-        // NEW FIELDS:
+
+        // EXTRA FIELDS
         cut_type: productForm.cut_type,
         texture: productForm.texture,
         drying_method: productForm.drying_method,
@@ -116,17 +217,26 @@ export default function AdminDashboard() {
         active: productForm.active,
       };
 
+      // ✅ CREATE or UPDATE
       if (editingProduct) {
-        await supabase
-          .from("products")
-          .update(productData)
-          .eq("id", editingProduct.id);
+        await adminFetch(
+          `http://localhost:5000/products/${editingProduct.id}`,
+          {
+            method: "PUT",
+            body: JSON.stringify(productData),
+          }
+        );
       } else {
-        await supabase.from("products").insert(productData);
+        await adminFetch("http://localhost:5000/products", {
+          method: "POST",
+          body: JSON.stringify(productData),
+        });
       }
 
+      // ✅ RESET UI STATE
       setShowProductModal(false);
       setEditingProduct(null);
+
       setProductForm({
         name: "",
         description: "",
@@ -137,7 +247,7 @@ export default function AdminDashboard() {
         min_wholesale_quantity: "5",
         featured: false,
         images: [],
-        // RESET NEW FIELDS:
+
         cut_type: "STRIPS",
         texture: "BUBBLY",
         drying_method: "SUN-DRIED",
@@ -154,14 +264,11 @@ export default function AdminDashboard() {
         active: true,
       });
 
-      // Reload products after submit
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setProducts(data || []);
+      // ✅ RELOAD PRODUCTS (adminFetch already returns JSON)
+      const productsData = await adminFetch("http://localhost:5000/products");
+      setProducts(productsData || []);
     } catch (error) {
-      console.error("Error saving product:", error);
+      console.error("Error saving product:", error.message);
     }
   };
 
@@ -196,24 +303,79 @@ export default function AdminDashboard() {
     setShowProductModal(true);
   };
 
-  const handleDeleteProduct = async (id) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      await supabase.from("products").delete().eq("id", id);
-      const { data } = await supabase
-        .from("products")
-        .select("*")
-        .order("created_at", { ascending: false });
-      setProducts(data || []);
+  const handleDeleteProduct = async (productId) => {
+    if (!confirm("Are you sure you want to delete this product?")) return;
+
+    console.log("Deleting product with ID:", productId);
+
+    try {
+      // adminFetch throws automatically if not ok
+      await adminFetch(`http://localhost:5000/products/${productId}`, {
+        method: "DELETE",
+      });
+
+      console.log("Delete successful");
+
+      const productsData = await adminFetch("http://localhost:5000/products");
+      setProducts(productsData || []);
+    } catch (error) {
+      console.error("Error deleting product:", error.message);
+    }
+  };
+
+  const toggleWholesaleApproval = async (profileId, currentValue) => {
+    try {
+      await adminFetch(`http://localhost:5000/admin/users/${profileId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          wholesale_approved: !currentValue,
+        }),
+      });
+
+      // Update UI immediately
+      setProfiles((prev) =>
+        prev.map((p) =>
+          p.id === profileId ? { ...p, wholesale_approved: !currentValue } : p
+        )
+      );
+    } catch (error) {
+      console.error("Error toggling wholesale approval:", error.message);
     }
   };
 
   const updateOrderStatus = async (orderId, status) => {
-    await supabase.from("orders").update({ status }).eq("id", orderId);
-    const { data } = await supabase
-      .from("orders")
-      .select("*")
-      .order("created_at", { ascending: false });
-    setOrders(data || []);
+    try {
+      await adminFetch(`http://localhost:5000/orders/${orderId}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
+
+      const ordersData = await adminFetch("http://localhost:5000/orders");
+      setOrders(ordersData || []);
+    } catch (err) {
+      console.error("Error updating order status:", err.message);
+    }
+  };
+
+  const updatePaymentStatus = async (orderId, payment_status) => {
+    try {
+      await adminFetch(`http://localhost:5000/orders/${orderId}/payment`, {
+        method: "PUT",
+        body: JSON.stringify({ payment_status }),
+      });
+
+      if (payment_status === "paid") {
+        await adminFetch("http://localhost:5000/sendPaymentEmail", {
+          method: "POST",
+          body: JSON.stringify({ orderId }),
+        });
+      }
+
+      const ordersData = await adminFetch("http://localhost:5000/orders");
+      setOrders(ordersData || []);
+    } catch (err) {
+      console.error("Error updating payment status:", err.message);
+    }
   };
 
   return (
@@ -225,19 +387,21 @@ export default function AdminDashboard() {
 
         {/* Tabs */}
         <div className="flex space-x-4 mb-8 border-b border-gray-200">
-          {["overview", "products", "orders"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 font-medium capitalize transition ${
-                activeTab === tab
-                  ? "border-b-2 border-[#CA993B] text-[#CA993B]"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+          {["overview", "products", "orders", "profiles", "wholesale"].map(
+            (tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`px-4 py-2 font-medium capitalize transition ${
+                  activeTab === tab
+                    ? "border-b-2 border-[#CA993B] text-[#CA993B]"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                {tab}
+              </button>
+            )
+          )}
         </div>
 
         {/* Overview */}
@@ -473,32 +637,81 @@ export default function AdminDashboard() {
         {/* Orders */}
         {activeTab === "orders" && (
           <div>
-            <h2 className="text-2xl font-bold mb-6">Orders</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Orders</h2>
+
             <div className="space-y-4">
               {(orders || []).map((order) => (
-                <Card key={order.id}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="font-bold text-lg">
-                        {order.order_number}
-                      </h3>
-                      <p className="text-gray-600">
-                        {formatCurrency(order.total || 0)}
-                      </p>
+                <Card
+                  key={order.id}
+                  className="p-5 hover:shadow-md transition-shadow"
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    {/* Order Info */}
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-bold text-lg text-gray-900">
+                          {order.order_number || `ORD-${order.id.slice(-6)}`}
+                        </h3>
+                        <span
+                          className={`px-2 py-1 text-xs font-medium rounded-full ${
+                            order.status === "delivered"
+                              ? "bg-green-100 text-green-800"
+                              : order.status === "shipped"
+                              ? "bg-blue-100 text-blue-800"
+                              : order.status === "processing"
+                              ? "bg-purple-100 text-purple-800"
+                              : order.status === "cancelled"
+                              ? "bg-red-100 text-red-800"
+                              : "bg-amber-100 text-amber-800"
+                          }`}
+                        >
+                          {order.status || "Pending"}
+                        </span>
+                      </div>
+
+                      <div className="text-gray-600 mb-3">
+                        <div className="flex items-center gap-4">
+                          <span className="text-lg font-bold text-[#CA993B]">
+                            {formatCurrency(order.total || 0)}
+                          </span>
+                          <span className="text-sm">
+                            {new Date(order.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
-                    <Select
-                      value={order.status || "pending"}
-                      onChange={(e) =>
-                        updateOrderStatus(order.id, e.target.value)
-                      }
-                      options={[
-                        { value: "pending", label: "Pending" },
-                        { value: "processing", label: "Processing" },
-                        { value: "shipped", label: "Shipped" },
-                        { value: "delivered", label: "Delivered" },
-                        { value: "cancelled", label: "Cancelled" },
-                      ]}
-                    />
+
+                    {/* Status Controls */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Select
+                        value={order.status || "pending"}
+                        onChange={(e) =>
+                          updateOrderStatus(order.id, e.target.value)
+                        }
+                        options={[
+                          { value: "pending", label: "Pending" },
+                          { value: "processing", label: "Processing" },
+                          { value: "shipped", label: "Shipped" },
+                          { value: "delivered", label: "Delivered" },
+                          { value: "cancelled", label: "Cancelled" },
+                        ]}
+                        className="min-w-40"
+                      />
+
+                      <Select
+                        value={order.payment_status || "pending"}
+                        onChange={(e) =>
+                          updatePaymentStatus(order.id, e.target.value)
+                        }
+                        options={[
+                          { value: "pending", label: "Payment Pending" },
+                          { value: "paid", label: "Paid" },
+                          { value: "failed", label: "Failed" },
+                          { value: "refunded", label: "Refunded" },
+                        ]}
+                        className="min-w-40"
+                      />
+                    </div>
                   </div>
                 </Card>
               ))}
@@ -506,11 +719,334 @@ export default function AdminDashboard() {
           </div>
         )}
 
+        {/* Profiles */}
+        {activeTab === "profiles" && (
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              User Profiles
+            </h2>
+
+            <div className="space-y-4">
+              {profiles.map((profile) => (
+                <Card
+                  key={profile.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
+                  {/* User Info */}
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      {profile.full_name || "No Name"}
+                    </p>
+                    <p className="text-sm text-gray-600">{profile.email}</p>
+                    <p className="text-xs text-gray-500 capitalize">
+                      Account Type: {profile.account_type}
+                    </p>
+                  </div>
+
+                  {/* Wholesale Status */}
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`px-2 py-1 text-xs font-medium rounded-full ${
+                        profile.wholesale_approved
+                          ? "bg-green-100 text-green-700"
+                          : "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {profile.wholesale_approved
+                        ? "Wholesale Approved"
+                        : "Not Wholesale"}
+                    </span>
+
+                    {/* Prevent toggling admins */}
+                    {profile.account_type !== "admin" && (
+                      <Button
+                        size="sm"
+                        onClick={() =>
+                          toggleWholesaleApproval(
+                            profile.id,
+                            profile.wholesale_approved
+                          )
+                        }
+                      >
+                        {profile.wholesale_approved ? "Revoke" : "Approve"}
+                      </Button>
+                    )}
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Wholesale Pricing */}
+        {activeTab === "wholesale" && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold">Wholesale Pricing</h2>
+              <Button onClick={() => setShowWholesaleModal(true)}>
+                Add Wholesale Price
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {wholesaleTabData.map((item) => (
+                <Card
+                  key={item.id}
+                  className="flex justify-between items-center p-4"
+                >
+                  <div>
+                    <p className="font-semibold text-gray-900">
+                      Product: {item.products?.name}
+                    </p>
+                    <p>
+                      Qty: {item.min_quantity} – {item.max_quantity}
+                    </p>
+                    <p className="font-bold text-[#CA993B]">
+                      ₦{item.price_per_unit}
+                    </p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        setEditingWholesale(item);
+                        setWholesaleForm({
+                          product_id: item.product_id,
+                          min_quantity: item.min_quantity,
+                          max_quantity: item.max_quantity,
+                          price_per_unit: item.price_per_unit,
+                        });
+
+                        setShowWholesaleModal(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      onClick={async () => {
+                        try {
+                          await adminFetch(
+                            `http://localhost:5000/admin/wholesale/${item.id}`,
+                            {
+                              method: "DELETE",
+                            }
+                          );
+                          setWholesaleTabData((prev) =>
+                            prev.filter((w) => w.id !== item.id)
+                          );
+                        } catch (err) {
+                          console.error(
+                            "Error deleting wholesale entry:",
+                            err.message
+                          );
+                          alert("Failed to delete wholesale entry");
+                        }
+
+                        setWholesaleTabData((prev) =>
+                          prev.filter((w) => w.id !== item.id)
+                        );
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* {wholesale Modal} */}
+        <Modal
+          isOpen={showWholesaleModal}
+          onClose={() => {
+            setShowWholesaleModal(false);
+            setEditingWholesale(null);
+            setWholesaleForm({
+              product_id: "",
+              min_quantity: 5,
+              max_quantity: 100,
+              price_per_unit: 0,
+            });
+          }}
+          title={
+            editingWholesale ? "Edit Wholesale Price" : "Add Wholesale Price"
+          }
+        >
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+
+              if (!wholesaleForm.product_id) {
+                alert("Please select a product");
+                return;
+              }
+
+              const data = {
+                product_id: wholesaleForm.product_id,
+                min_quantity: Number(wholesaleForm.min_quantity),
+                max_quantity: Number(wholesaleForm.max_quantity),
+                price_per_unit: Number(wholesaleForm.price_per_unit),
+              };
+
+              // Check overlap
+              const { data: existingRanges, error: rangeError } = await supabase
+                .from("wholesale_pricing")
+                .select("id, min_quantity, max_quantity")
+                .eq("product_id", data.product_id);
+
+              if (rangeError) {
+                alert(rangeError.message);
+                return;
+              }
+
+              const overlap = existingRanges?.some((range) => {
+                if (editingWholesale && range.id === editingWholesale.id)
+                  return false;
+                return !(
+                  data.max_quantity < range.min_quantity ||
+                  data.min_quantity > range.max_quantity
+                );
+              });
+
+              if (overlap) {
+                alert(
+                  "Quantity range overlaps with an existing wholesale price"
+                );
+                return;
+              }
+
+              // Save
+              try {
+                if (editingWholesale) {
+                  await adminFetch(
+                    `http://localhost:5000/admin/wholesale/${editingWholesale.id}`,
+                    {
+                      method: "PUT",
+                      body: JSON.stringify(data),
+                    }
+                  );
+                } else {
+                  await adminFetch("http://localhost:5000/admin/wholesale", {
+                    method: "POST",
+                    body: JSON.stringify(data),
+                  });
+                }
+
+                // Refresh wholesale data
+                const updated = await adminFetch(
+                  "http://localhost:5000/admin/wholesale"
+                );
+                setWholesaleTabData(updated || []);
+
+                // Close modal & reset form
+                setShowWholesaleModal(false);
+                setEditingWholesale(null);
+                setWholesaleForm({
+                  product_id: "",
+                  min_quantity: 5,
+                  max_quantity: 100,
+                  price_per_unit: 0,
+                });
+              } catch (err) {
+                console.error(err);
+                alert(err.message || "Failed to save wholesale pricing");
+              }
+
+              // Refresh
+              const { data: updated } = await supabase
+                .from("wholesale_pricing")
+                .select(
+                  `
+      id,
+      product_id,
+      min_quantity,
+      max_quantity,
+      price_per_unit,
+      products ( name )
+    `
+                )
+                .order("min_quantity", { ascending: true });
+
+              setWholesaleTabData(updated || []);
+
+              setShowWholesaleModal(false);
+              setEditingWholesale(null);
+              setWholesaleForm({
+                product_id: "",
+                min_quantity: 5,
+                max_quantity: 100,
+                price_per_unit: 0,
+              });
+            }}
+            className="space-y-4"
+          >
+            <Select
+              label="Select Product"
+              value={wholesaleForm.product_id}
+              onChange={(e) =>
+                setWholesaleForm({
+                  ...wholesaleForm,
+                  product_id: e.target.value,
+                })
+              }
+              options={products.map((p) => ({
+                value: p.id,
+                label: p.name,
+              }))}
+              required
+            />
+            <Input
+              label="Minimum Quantity"
+              type="number"
+              value={wholesaleForm.min_quantity}
+              onChange={(e) =>
+                setWholesaleForm({
+                  ...wholesaleForm,
+                  min_quantity: e.target.value,
+                })
+              }
+              required
+            />
+            <Input
+              label="Maximum Quantity"
+              type="number"
+              value={wholesaleForm.max_quantity}
+              onChange={(e) =>
+                setWholesaleForm({
+                  ...wholesaleForm,
+                  max_quantity: e.target.value,
+                })
+              }
+              required
+            />
+            <Input
+              label="Wholesale Price"
+              type="number"
+              value={wholesaleForm.price_per_unit}
+              onChange={(e) =>
+                setWholesaleForm({
+                  ...wholesaleForm,
+                  price_per_unit: e.target.value,
+                })
+              }
+              required
+            />
+            <Button type="submit" fullWidth>
+              {editingWholesale ? "Update" : "Add"}
+            </Button>
+          </form>
+        </Modal>
+
         {/* Product Modal */}
         <Modal
           isOpen={showProductModal}
           onClose={() => setShowProductModal(false)}
           title={editingProduct ? "Edit Product" : "Add Product"}
+          showSideImage={false}
+          size="2xl"
         >
           <form onSubmit={handleProductSubmit} className="space-y-4">
             <Input

@@ -160,16 +160,30 @@ export default function CheckoutPage({ onNavigate }) {
 
       if (itemsError) throw itemsError;
 
-      for (const item of cart) {
-        const { error: stockError } = await supabase
-          .from("products")
-          .update({
-            stock_quantity: item.product.stock_quantity - item.quantity,
-          })
-          .eq("id", item.product_id);
+      const res = await fetch("/api/orders/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user.id,
+          cart,
+          shippingInfo,
+          paymentMethod,
+          subtotal: cartTotal,
+          shippingCost,
+          total,
+        }),
+      });
 
-        if (stockError) throw stockError;
-      }
+      const data = await res.json();
+
+      if (!data.success) throw new Error("Order failed");
+
+      await clearCart();
+
+      onNavigate("order-confirmation", {
+        orderId: data.orderId,
+        orderNumber: data.orderNumber,
+      });
 
       await clearCart();
 

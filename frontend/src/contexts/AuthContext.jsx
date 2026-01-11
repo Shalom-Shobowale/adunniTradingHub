@@ -60,10 +60,13 @@ export function AuthProvider({ children }) {
         .eq("id", userId)
         .maybeSingle();
 
+      console.log("Profile data:", data);
+      console.log("Profile error:", error);
+
       if (error) throw error;
       setProfile(data);
     } catch (error) {
-      console.error("Error loading profile:", error);
+      console.error("Error loading profile FULL:", error);
     } finally {
       setLoading(false);
     }
@@ -71,24 +74,23 @@ export function AuthProvider({ children }) {
 
   const signUp = async (email, password, userData) => {
     try {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: userData.full_name,
+            phone: userData.phone,
+            account_type: userData.account_type,
+            company_name: userData.company_name || null,
+            business_registration: userData.business_registration || null,
+            wholesale_approved: false,
+          },
+        },
+      });
+
       if (error) throw error;
 
-      if (data.user) {
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: data.user.id,
-          email,
-          full_name: userData.full_name,
-          phone: userData.phone,
-          account_type: userData.account_type,
-          company_name: userData.company_name || null,
-          business_registration: userData.business_registration || null,
-          wholesale_approved: false,
-        });
-        if (profileError) throw profileError;
-      }
-
-      // If session is null, user needs email confirmation
       const requiresConfirmation = !data.session;
 
       return { error: null, requiresConfirmation };

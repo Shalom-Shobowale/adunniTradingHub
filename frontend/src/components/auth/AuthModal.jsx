@@ -62,7 +62,6 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
     setLoading(true);
 
     try {
-      // Call signUp and get confirmation flag
       const { error, requiresConfirmation } = await signUp(
         signupData.email,
         signupData.password,
@@ -85,7 +84,6 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
 
       if (requiresConfirmation) {
         setConfirmationSent(true);
-        // Optionally clear password fields but keep email so user knows where to check
         setSignupData((prev) => ({
           ...prev,
           password: "",
@@ -112,15 +110,24 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} size="md">
-      <div className="max-w-md mx-auto h-[70vh] ">
-        <div className="flex justify-center">
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="lg"
+      showSideImage={true} // ✅ THIS IS THE KEY FIX
+      title={mode === "login" ? "Sign In" : "Create Account"}
+    >
+      <div className="max-w-md mx-auto">
+        {/* Logo */}
+        <div className="flex justify-center mb-4">
           <img
             src="/logo1.png"
             alt="Adunni Trading Hub"
-            className="h-32 w-32"
+            className="h-24 w-24"
           />
         </div>
+
+        {/* Heading */}
         <h2 className="text-3xl font-bold text-gray-900 mb-2 text-center">
           {mode === "login" ? "Welcome Back" : "Create Account"}
         </h2>
@@ -130,19 +137,22 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
             : "Sign up to start shopping with us"}
         </p>
 
+        {/* Errors */}
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
             {error}
           </div>
         )}
+
+        {/* Confirmation */}
         {confirmationSent && (
           <div className="bg-yellow-50 border border-yellow-300 text-yellow-700 px-4 py-3 rounded-lg mb-4">
             A confirmation email has been sent to{" "}
-            <strong>{signupData.email}</strong>. Please check your inbox and
-            follow the instructions to complete your registration.
+            <strong>{signupData.email}</strong>. Please check your inbox.
           </div>
         )}
 
+        {/* Forms */}
         {mode === "login" ? (
           <form onSubmit={handleLogin} className="space-y-4">
             <Input
@@ -163,19 +173,13 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
                 setLoginData({ ...loginData, password: e.target.value })
               }
             />
-            <Button
-              type="submit"
-              fullWidth
-              loading={loading}
-              disabled={loading}
-            >
-              {loading ? "Signing In..." : "Sign In"}
+            <Button type="submit" fullWidth loading={loading}>
+              Sign In
             </Button>
           </form>
         ) : (
           <form onSubmit={handleSignup} className="space-y-4">
             <Input
-              type="text"
               label="Full Name"
               required
               value={signupData.full_name}
@@ -193,7 +197,6 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
               }
             />
             <Input
-              type="tel"
               label="Phone Number"
               required
               value={signupData.phone}
@@ -203,7 +206,6 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
             />
             <Select
               label="Account Type"
-              required
               value={signupData.account_type}
               onChange={(e) =>
                 setSignupData({ ...signupData, account_type: e.target.value })
@@ -213,10 +215,10 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
                 { value: "wholesale", label: "Wholesale Customer" },
               ]}
             />
+
             {signupData.account_type === "wholesale" && (
               <>
                 <Input
-                  type="text"
                   label="Company Name"
                   required
                   value={signupData.company_name}
@@ -228,7 +230,6 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
                   }
                 />
                 <Input
-                  type="text"
                   label="Business Registration Number"
                   value={signupData.business_registration}
                   onChange={(e) =>
@@ -240,6 +241,7 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
                 />
               </>
             )}
+
             <Input
               type="password"
               label="Password"
@@ -261,17 +263,14 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
                 })
               }
             />
-            <Button
-              type="submit"
-              fullWidth
-              loading={loading}
-              disabled={loading}
-            >
-              {loading ? "Creating Account..." : "Create Account"}
+
+            <Button type="submit" fullWidth loading={loading}>
+              Create Account
             </Button>
           </form>
         )}
 
+        {/* Switch mode */}
         <div className="mt-6 text-center">
           <p className="text-gray-600">
             {mode === "login"

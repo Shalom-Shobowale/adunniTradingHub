@@ -3,7 +3,7 @@ import { Search, SlidersHorizontal } from "lucide-react";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
-import { Button } from "../components/ui/Button";
+import { useAuth } from "../contexts/useAuth";
 import { supabase } from "../lib/supabase";
 import { formatCurrency } from "../lib/utils";
 
@@ -14,6 +14,7 @@ export default function ProductsPage({ onNavigate }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [gradeFilter, setGradeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
+  const { isWholesaleApproved } = useAuth();
 
   useEffect(() => {
     loadProducts();
@@ -25,16 +26,44 @@ export default function ProductsPage({ onNavigate }) {
 
   const loadProducts = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch active products
+      const { data: productsData, error: productsError } = await supabase
         .from("products")
         .select("*")
         .eq("active", true)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      setProducts(data || []);
+      if (productsError) throw productsError;
+
+      // Extract product IDs
+      const productIds = productsData.map((p) => p.id);
+
+      // Fetch wholesale prices for those products
+      let wholesaleData = [];
+
+      if (isWholesaleApproved) {
+        const { data, error } = await supabase
+          .from("wholesale_pricing")
+          .select("*")
+          .in("product_id", productIds);
+
+        if (error) throw error;
+        wholesaleData = data || [];
+      }
+
+      // if (wholesaleError) throw wholesaleError;
+
+      // Attach wholesale pricing to each product
+      const productsWithWholesale = productsData.map((product) => ({
+        ...product,
+        wholesale_pricing: isWholesaleApproved
+          ? wholesaleData.filter((w) => w.product_id === product.id)
+          : [],
+      }));
+
+      setProducts(productsWithWholesale);
     } catch (error) {
-      console.error("Error loading products:", error);
+      console.error("Error loading products and wholesale pricing:", error);
     } finally {
       setLoading(false);
     }
@@ -299,6 +328,45 @@ export default function ProductsPage({ onNavigate }) {
                               /unit
                             </span>
                           </div>
+                          {/* Wholesale pricing section */}
+                          {isWholesaleApproved &&
+                            product.wholesale_pricing.length > 0 && (
+                              <div className="mt-2">
+                                <h4 className="font-semibold text-sm mb-1">
+                                  Wholesale Pricing:
+                                </h4>
+                                <ul className="text-xs text-gray-700">
+                                  {product.wholesale_pricing.map(
+                                    ({
+                                      id,
+                                      min_quantity,
+                                      max_quantity,
+                                      price_per_unit,
+                                    }) => (
+                                      <li key={id}>
+                                        {min_quantity} - {max_quantity} units: ₦
+                                        {price_per_unit.toFixed(2)} per unit
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </div>
+                            )}
+                          {console.log(
+                            "Wholesale approved?",
+                            isWholesaleApproved,
+                            "min qty:",
+                            product.min_wholesale_quantity
+                          )}
+
+                          {!isWholesaleApproved &&
+                            product.min_wholesale_quantity > 1 && (
+                              <p className="text-xs text-gray-500 mt-2">
+                                Wholesale pricing available for approved
+                                partners
+                              </p>
+                            )}
+
                           {/* Dynamic stock status */}
                           <div
                             className={`text-xs font-semibold mt-0.5 flex items-center justify-end ${

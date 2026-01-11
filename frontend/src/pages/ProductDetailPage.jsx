@@ -42,10 +42,10 @@ export default function ProductDetailPage({ productId, onNavigate }) {
 
   const loadProduct = async () => {
     try {
+      // Load product and wholesale pricing only
       const [
         { data: productData, error: productError },
         { data: pricingData },
-        { data: reviewsData },
       ] = await Promise.all([
         supabase.from("products").select("*").eq("id", productId).maybeSingle(),
         supabase
@@ -53,30 +53,37 @@ export default function ProductDetailPage({ productId, onNavigate }) {
           .select("*")
           .eq("product_id", productId)
           .order("min_quantity"),
-        supabase
-          .from("reviews")
-          .select("*")
-          .eq("product_id", productId)
-          .order("created_at", { ascending: false }),
       ]);
 
       if (productError) throw productError;
+
       setProduct(productData);
       setWholesalePricing(pricingData || []);
-      setReviews(reviewsData || []);
 
-      // Calculate average rating
-      if (reviewsData && reviewsData.length > 0) {
-        const avg =
-          reviewsData.reduce((sum, review) => sum + review.rating, 0) /
-          reviewsData.length;
-        setAverageRating(avg.toFixed(1));
-      }
+      // No reviews table yet, fallback to empty
+      setReviews([]);
+      setAverageRating(productData?.rating || 0); // fallback rating if your product has a rating field
     } catch (error) {
       console.error("Error loading product:", error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const minWholesaleQty = wholesalePricing?.[0]?.min_quantity;
+
+  const getWholesalePrice = (quantity, pricing) => {
+    if (!pricing || pricing.length === 0) return null;
+
+    const sorted = [...pricing].sort((a, b) => a.min_quantity - b.min_quantity);
+
+    return (
+      sorted.find(
+        (tier) =>
+          quantity >= tier.min_quantity &&
+          (tier.max_quantity === null || quantity <= tier.max_quantity)
+      )?.price_per_unit ?? null
+    );
   };
 
   const handleAddToCart = async () => {
@@ -87,10 +94,12 @@ export default function ProductDetailPage({ productId, onNavigate }) {
       });
       return;
     }
+
     if (!product || product.stock_quantity === 0) {
       setMessage({ type: "error", text: "Product is out of stock" });
       return;
     }
+
     if (quantity > product.stock_quantity) {
       setMessage({
         type: "error",
@@ -98,13 +107,35 @@ export default function ProductDetailPage({ productId, onNavigate }) {
       });
       return;
     }
+
     setAddingToCart(true);
+
     try {
-      await addToCart(productId, quantity);
+      // Determine current price
+      const currentPrice = isWholesaleApproved
+        ? getWholesalePrice(quantity, wholesalePricing) ?? product.retail_price
+        : product.retail_price;
+
+      const safePrice = Number(currentPrice);
+      if (isNaN(safePrice) || safePrice <= 0) {
+        setMessage({
+          type: "error",
+          text: "Invalid product price, cannot add to cart",
+        });
+        setAddingToCart(false);
+        return;
+      }
+
+      // Add to cart
+      await addToCart(productId, quantity, safePrice);
       setMessage({ type: "success", text: "Added to cart successfully!" });
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
-      setMessage({ type: "error", text: `Failed to add to cart ${error}` });
+      console.error("Add to cart error:", error);
+      setMessage({
+        type: "error",
+        text: `Failed to add to cart: ${error.message || error}`,
+      });
     } finally {
       setAddingToCart(false);
     }
@@ -179,14 +210,11 @@ export default function ProductDetailPage({ productId, onNavigate }) {
       ? images.map((img) => (typeof img === "string" ? img : img?.url))
       : ["https://images.pexels.com/photos/4113773/pexels-photo-4113773.jpeg"];
 
-  const currentPrice =
-    isWholesaleApproved && quantity >= product.min_wholesale_quantity
-      ? wholesalePricing.find(
-          (tier) =>
-            quantity >= tier.min_quantity &&
-            (tier.max_quantity === null || quantity <= tier.max_quantity)
-        )?.price_per_unit || product.retail_price
-      : product.retail_price;
+  const wholesaleUnitPrice = isWholesaleApproved
+    ? getWholesalePrice(quantity, wholesalePricing)
+    : null;
+
+  const currentPrice = wholesaleUnitPrice ?? product.retail_price;
 
   // Get all ponmo-specific fields
   const ponmoDetails = [
@@ -399,11 +427,16 @@ export default function ProductDetailPage({ productId, onNavigate }) {
                           min="1"
                           max={product.stock_quantity}
                           value={quantity}
-                          onChange={(e) =>
-                            setQuantity(
-                              Math.max(1, parseInt(e.target.value) || 1)
-                            )
-                          }
+                          onChange={(e) => {
+                            const value = Math.max(
+                              1,
+                              Math.min(
+                                product.stock_quantity,
+                                Number(e.target.value) || 1
+                              )
+                            );
+                            setQuantity(value);
+                          }}
                           className="border-0 text-center rounded-none"
                         />
                         <button
@@ -534,43 +567,38 @@ export default function ProductDetailPage({ productId, onNavigate }) {
                   Wholesale Pricing (Bulk Orders)
                 </h3>
                 <div className="space-y-3">
-                  {wholesalePricing.map((tier) => (
-                    <div
-                      key={tier.id}
-                      className="flex justify-between items-center p-4 bg-white border border-gray-200 rounded-lg hover:border-[#CA993B] transition-colors"
-                    >
-                      <div>
-                        <span className="font-medium text-gray-700">
-                          {tier.min_quantity} - {tier.max_quantity || "∞"} units
-                        </span>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Save{" "}
-                          {Math.round(
-                            (1 - tier.price_per_unit / product.retail_price) *
-                              100
-                          )}
-                          %
-                        </p>
+                  {wholesalePricing.map((tier) => {
+                    const isActiveTier =
+                      wholesaleUnitPrice === tier.price_per_unit;
+
+                    return (
+                      <div key={tier.id} className="p-4 border rounded-lg">
+                        <div className="flex justify-between">
+                          <span>
+                            {tier.min_quantity} – {tier.max_quantity || "∞"}{" "}
+                            units
+                          </span>
+                          <span className="font-bold">
+                            {formatCurrency(tier.price_per_unit)}/unit
+                          </span>
+                        </div>
+
+                        {isActiveTier && (
+                          <p className="text-sm text-emerald-600 font-medium mt-2">
+                            Active wholesale price
+                          </p>
+                        )}
                       </div>
-                      <div className="text-right">
-                        <span className="font-bold text-[#CA993B]">
-                          {formatCurrency(tier.price_per_unit)}/unit
-                        </span>
-                        <p className="text-xs text-gray-500">
-                          {formatCurrency(
-                            tier.price_per_unit * tier.min_quantity
-                          )}{" "}
-                          min order
-                        </p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-                <p className="text-sm text-gray-600 mt-4 p-4 bg-gray-50 rounded-lg">
-                  <span className="font-medium">Note:</span> Minimum wholesale
-                  order is {product.min_wholesale_quantity} units. Contact us
-                  for custom bulk orders.
-                </p>
+                {minWholesaleQty && (
+                  <p className="text-sm text-gray-600 mt-4 p-4 bg-gray-50 rounded-lg">
+                    <span className="font-medium">Note:</span> Minimum wholesale
+                    order is {minWholesaleQty} units. Contact us for custom bulk
+                    orders.
+                  </p>
+                )}
               </Card>
             )}
           </div>
