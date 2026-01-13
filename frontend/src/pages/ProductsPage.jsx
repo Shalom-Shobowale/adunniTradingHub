@@ -185,7 +185,7 @@ export default function ProductsPage({ onNavigate }) {
                     padding="none"
                     className="cursor-pointer overflow-hidden group bg-white rounded-xl border border-gray-200 hover:border-[#CA993B] transition-all duration-300 shadow-sm hover:shadow-lg"
                     onClick={() => {
-                      console.log("CLICKED PRODUCT:", product.id);
+                      // console.log("CLICKED PRODUCT:", product.id);
                       onNavigate("product-detail", { productId: product.id });
                     }}
                   >
@@ -352,12 +352,12 @@ export default function ProductsPage({ onNavigate }) {
                                 </ul>
                               </div>
                             )}
-                          {console.log(
+                          {/* {console.log(
                             "Wholesale approved?",
                             isWholesaleApproved,
                             "min qty:",
                             product.min_wholesale_quantity
-                          )}
+                          )} */}
 
                           {!isWholesaleApproved &&
                             product.min_wholesale_quantity > 1 && (

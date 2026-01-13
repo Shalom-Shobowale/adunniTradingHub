@@ -111,7 +111,7 @@ export default function HomePage({ onNavigate }) {
                 size="lg"
                 variant="outline"
                 onClick={() => onNavigate("wholesale")}
-                className="border-white text-white hover:text-[#CA993B] hover:bg-white"
+                className="border-white text-white hover:bg-white hover:text-[#CA993B]!"
               >
                 Wholesale Orders
                 <ArrowRight className="h-5 w-5" />

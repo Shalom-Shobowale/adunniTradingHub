@@ -60,8 +60,8 @@ export function AuthProvider({ children }) {
         .eq("id", userId)
         .maybeSingle();
 
-      console.log("Profile data:", data);
-      console.log("Profile error:", error);
+      // console.log("Profile data:", data);
+      // console.log("Profile error:", error);
 
       if (error) throw error;
       setProfile(data);

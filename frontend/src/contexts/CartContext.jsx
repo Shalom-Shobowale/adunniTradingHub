@@ -53,17 +53,6 @@ export function CartProvider({ children }) {
         .eq("user_id", user.id);
 
       if (error) throw error;
-      console.log(
-        "WHOLESALE DEBUG",
-        data.map((i) => ({
-          name: i.product?.name,
-          isWholesaleApproved,
-          wholesalePricing: i.product?.wholesale_pricing,
-          qty: i.quantity,
-          price: i.price,
-        }))
-      );
-
       setCart(data || []);
     } finally {
       setLoading(false);

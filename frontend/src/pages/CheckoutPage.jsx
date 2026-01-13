@@ -6,7 +6,6 @@ import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
 import { useCart } from "../contexts/useCart";
 import { useAuth } from "../contexts/useAuth";
-import { supabase } from "../lib/supabase";
 import { formatCurrency } from "../lib/utils";
 
 export default function CheckoutPage({ onNavigate }) {
@@ -81,86 +80,9 @@ export default function CheckoutPage({ onNavigate }) {
     setProcessing(true);
 
     try {
-      if (!user) throw new Error("Must be logged in to checkout");
+      if (!user) throw new Error("You must be logged in to checkout.");
 
-      const orderNumber = `ADH${Date.now()}`;
-
-      // const verifyPayment = async (reference, orderId) => {
-      //   const res = await fetch("/api/paystack/verify", {
-      //     method: "POST",
-      //     headers: { "Content-Type": "application/json" },
-      //     body: JSON.stringify({ reference, orderId }),
-      //   });
-
-      //   const data = await res.json();
-
-      //   if (!data.success) {
-      //     setError("Payment verification failed");
-      //     return;
-      //   }
-
-      //   await clearCart();
-      //   onNavigate("order-confirmation");
-      // };
-
-      // const payWithPaystack = (order) => {
-      //   const handler = window.PaystackPop.setup({
-      //     key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY,
-      //     email: user.email,
-      //     amount: order.total * 100, // kobo
-      //     ref: order.order_number,
-
-      //     onSuccess: (response) => {
-      //       verifyPayment(response.reference, order.id);
-      //     },
-
-      //     onClose: () => {
-      //       setError("Payment was cancelled. Order is still pending.");
-      //     },
-      //   });
-
-      //   handler.openIframe();
-      // };
-
-      const { data: order, error: orderError } = await supabase
-        .from("orders")
-        .insert({
-          order_number: orderNumber,
-          user_id: user.id,
-          order_type: "retail",
-          status: "pending",
-          subtotal: cartTotal,
-          shipping_cost: shippingCost,
-          total: total,
-          shipping_address: shippingInfo,
-          payment_method: paymentMethod,
-          payment_status: "pending",
-        })
-        .select()
-        .single();
-      // if (paymentMethod === "card") {
-      //   payWithPaystack(order);
-      //   return; // stop here, don't redirect yet
-      // }
-
-      if (orderError) throw orderError;
-
-      const orderItems = cart.map((item) => ({
-        order_id: order.id,
-        product_id: item.product_id,
-        product_name: item.product.name,
-        quantity: item.quantity,
-        unit_price: item.product.retail_price,
-        total_price: item.product.retail_price * item.quantity,
-      }));
-
-      const { error: itemsError } = await supabase
-        .from("order_items")
-        .insert(orderItems);
-
-      if (itemsError) throw itemsError;
-
-      const res = await fetch("/api/orders/create", {
+      const res = await fetch("http://localhost:5000/orders/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -176,7 +98,7 @@ export default function CheckoutPage({ onNavigate }) {
 
       const data = await res.json();
 
-      if (!data.success) throw new Error("Order failed");
+      if (!data.success) throw new Error(data.error || "Order creation failed");
 
       await clearCart();
 
@@ -184,20 +106,13 @@ export default function CheckoutPage({ onNavigate }) {
         orderId: data.orderId,
         orderNumber: data.orderNumber,
       });
-
-      await clearCart();
-
-      onNavigate("order-confirmation", {
-        orderId: order.id,
-        orderNumber: order.order_number,
-      });
     } catch (err) {
-      console.error("Checkout error:", err);
-      setError(err instanceof Error ? err.message : "Failed to process order");
+      setError(err.message || "Failed to process order.");
     } finally {
       setProcessing(false);
     }
   };
+
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

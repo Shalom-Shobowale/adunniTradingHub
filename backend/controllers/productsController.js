@@ -16,7 +16,7 @@ export const getProducts = async (req, res) => {
 export const createProduct = async (req, res) => {
   const product = req.body;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("products")
     .insert(product)
     .select()
@@ -31,7 +31,7 @@ export const updateProduct = async (req, res) => {
   const { id } = req.params;
   const updates = req.body;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("products")
     .update(updates)
     .eq("id", id)

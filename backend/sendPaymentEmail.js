@@ -16,10 +16,10 @@ const sendPaymentEmail = async (req, res) => {
     }
 
     // 1️⃣ Fetch order
-    const { data: order, error: orderError } = await supabase
+    const { data: order, error: orderError } = await supabaseAdmin
       .from("orders")
       .select("order_number, total, user_id")
-      .eq("order_number", orderId)
+      .eq("id", orderId)
       .single();
 
     if (orderError || !order) {
@@ -28,7 +28,7 @@ const sendPaymentEmail = async (req, res) => {
     }
 
     // 2️⃣ Fetch user email
-    const { data: user, error: userError } = await supabase
+    const { data: user, error: userError } = await supabaseAdmin
       .from("profiles")
       .select("email")
       .eq("id", order.user_id)
