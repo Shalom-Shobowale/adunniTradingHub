@@ -7,6 +7,7 @@ import { Select } from "../components/ui/Select";
 import { useCart } from "../contexts/useCart";
 import { useAuth } from "../contexts/useAuth";
 import { formatCurrency } from "../lib/utils";
+import { API_BASE_URL } from "../config/api";
 
 export default function CheckoutPage({ onNavigate }) {
   const { cart, cartTotal, clearCart } = useCart();
@@ -82,7 +83,7 @@ export default function CheckoutPage({ onNavigate }) {
     try {
       if (!user) throw new Error("You must be logged in to checkout.");
 
-      const res = await fetch("http://localhost:5000/orders/create", {
+      const res = await fetch(`${API_BASE_URL}/orders/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

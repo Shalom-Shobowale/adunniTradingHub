@@ -7,6 +7,7 @@ import { Textarea } from "../components/ui/Textarea";
 import { Select } from "../components/ui/Select";
 import { Modal } from "../components/ui/Modal";
 import { supabase } from "../lib/supabase";
+import { API_BASE_URL } from "../config/api"
 import { formatCurrency, generateSlug } from "../lib/utils";
 
 export default function AdminDashboard() {
@@ -89,7 +90,7 @@ export default function AdminDashboard() {
           activeTab === "overview" ||
           activeTab === "wholesale"
         ) {
-          const res = await fetch("http://localhost:5000/products", {
+          const res = await fetch(`${API_BASE_URL}/products`, {
             headers: authHeaders,
           });
           productsData = await res.json();
@@ -98,7 +99,7 @@ export default function AdminDashboard() {
 
         // 3️⃣ ORDERS (ADMIN ONLY)
         if (activeTab === "orders" || activeTab === "overview") {
-          const res = await fetch("http://localhost:5000/admin/orders", {
+          const res = await fetch(`${API_BASE_URL}/admin/orders`, {
             headers: authHeaders,
           });
           ordersData = await res.json();
@@ -107,7 +108,7 @@ export default function AdminDashboard() {
 
         // 4️⃣ PROFILES (ADMIN ONLY)
         if (activeTab === "profiles") {
-          const res = await fetch("http://localhost:5000/admin/users", {
+          const res = await fetch(`${API_BASE_URL}/admin/users`, {
             headers: {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
@@ -127,7 +128,7 @@ export default function AdminDashboard() {
 
         // 5️⃣ WHOLESALE PRICING
         if (activeTab === "wholesale") {
-          const res = await fetch("http://localhost:5000/admin/wholesale", {
+          const res = await fetch(`${API_BASE_URL}/admin/wholesale`, {
             headers: authHeaders, // make sure this includes Authorization
           });
 
@@ -220,14 +221,14 @@ export default function AdminDashboard() {
       // ✅ CREATE or UPDATE
       if (editingProduct) {
         await adminFetch(
-          `http://localhost:5000/products/${editingProduct.id}`,
+          `${API_BASE_URL}/products/${editingProduct.id}`,
           {
             method: "PUT",
             body: JSON.stringify(productData),
           }
         );
       } else {
-        await adminFetch("http://localhost:5000/products", {
+        await adminFetch(`${API_BASE_URL}/products`, {
           method: "POST",
           body: JSON.stringify(productData),
         });
@@ -265,7 +266,7 @@ export default function AdminDashboard() {
       });
 
       // ✅ RELOAD PRODUCTS (adminFetch already returns JSON)
-      const productsData = await adminFetch("http://localhost:5000/products");
+      const productsData = await adminFetch(`${API_BASE_URL}/products`);
       setProducts(productsData || []);
     } catch (error) {
       console.error("Error saving product:", error.message);
@@ -310,13 +311,13 @@ export default function AdminDashboard() {
 
     try {
       // adminFetch throws automatically if not ok
-      await adminFetch(`http://localhost:5000/products/${productId}`, {
+      await adminFetch(`${API_BASE_URL}/products/${productId}`, {
         method: "DELETE",
       });
 
       console.log("Delete successful");
 
-      const productsData = await adminFetch("http://localhost:5000/products");
+      const productsData = await adminFetch(`${API_BASE_URL}/products`);
       setProducts(productsData || []);
     } catch (error) {
       console.error("Error deleting product:", error.message);
@@ -325,7 +326,7 @@ export default function AdminDashboard() {
 
   const toggleWholesaleApproval = async (profileId, currentValue) => {
     try {
-      await adminFetch(`http://localhost:5000/admin/users/${profileId}`, {
+      await adminFetch(`${API_BASE_URL}/admin/users/${profileId}`, {
         method: "PUT",
         body: JSON.stringify({
           wholesale_approved: !currentValue,
@@ -345,12 +346,12 @@ export default function AdminDashboard() {
 
   const updateOrderStatus = async (orderId, status) => {
     try {
-      await adminFetch(`http://localhost:5000/orders/${orderId}`, {
+      await adminFetch(`${API_BASE_URL}/orders/${orderId}`, {
         method: "PUT",
         body: JSON.stringify({ status }),
       });
 
-      const ordersData = await adminFetch("http://localhost:5000/orders");
+      const ordersData = await adminFetch(`${API_BASE_URL}/orders`);
       setOrders(ordersData || []);
     } catch (err) {
       console.error("Error updating order status:", err.message);
@@ -359,19 +360,19 @@ export default function AdminDashboard() {
 
   const updatePaymentStatus = async (orderId, payment_status) => {
     try {
-      await adminFetch(`http://localhost:5000/orders/${orderId}/payment`, {
+      await adminFetch(`${API_BASE_URL}/orders/${orderId}/payment`, {
         method: "PUT",
         body: JSON.stringify({ payment_status }),
       });
 
       if (payment_status === "paid") {
-        await adminFetch("http://localhost:5000/sendPaymentEmail", {
+        await adminFetch(`${API_BASE_URL}/sendPaymentEmail`, {
           method: "POST",
           body: JSON.stringify({ orderId }),
         });
       }
 
-      const ordersData = await adminFetch("http://localhost:5000/orders");
+      const ordersData = await adminFetch(`${API_BASE_URL}/orders`);
       setOrders(ordersData || []);
     } catch (err) {
       console.error("Error updating payment status:", err.message);
@@ -828,7 +829,7 @@ export default function AdminDashboard() {
                       onClick={async () => {
                         try {
                           await adminFetch(
-                            `http://localhost:5000/admin/wholesale/${item.id}`,
+                            `${API_BASE_URL}/admin/wholesale/${item.id}`,
                             {
                               method: "DELETE",
                             }
@@ -922,14 +923,14 @@ export default function AdminDashboard() {
               try {
                 if (editingWholesale) {
                   await adminFetch(
-                    `http://localhost:5000/admin/wholesale/${editingWholesale.id}`,
+                    `${API_BASE_URL}/admin/wholesale/${editingWholesale.id}`,
                     {
                       method: "PUT",
                       body: JSON.stringify(data),
                     }
                   );
                 } else {
-                  await adminFetch("http://localhost:5000/admin/wholesale", {
+                  await adminFetch(`${API_BASE_URL}/admin/wholesale`, {
                     method: "POST",
                     body: JSON.stringify(data),
                   });
@@ -937,7 +938,7 @@ export default function AdminDashboard() {
 
                 // Refresh wholesale data
                 const updated = await adminFetch(
-                  "http://localhost:5000/admin/wholesale"
+                  `${API_BASE_URL}/admin/wholesale`
                 );
                 setWholesaleTabData(updated || []);
 

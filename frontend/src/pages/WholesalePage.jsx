@@ -6,6 +6,7 @@ import { Input } from "../components/ui/Input";
 import { Textarea } from "../components/ui/Textarea";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/useAuth";
+import { API_BASE_URL } from "../config/api"
 
 export default function WholesalePage({ onNavigate }) {
   const { user, isWholesale, isWholesaleApproved } = useAuth();
@@ -46,7 +47,7 @@ export default function WholesalePage({ onNavigate }) {
       if (quoteError) throw quoteError;
 
       // Send email via API route
-      const res = await fetch("http://localhost:5000/sendWholesaleEmail", {
+      const res = await fetch(`${API_BASE_URL}/sendWholesaleEmail`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(quoteData),
