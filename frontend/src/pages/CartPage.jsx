@@ -52,7 +52,7 @@ export default function CartPage({ onNavigate }) {
           </p>
           <Button
             size="lg"
-            onClick={() => onNavigate("products")}
+            onClick={() => onNavigate("/products")}
             className="bg-[#CA993B] hover:bg-[#B8852F] shadow-lg hover:shadow-xl transition-all"
           >
             Browse Premium Ponmo
@@ -296,7 +296,7 @@ export default function CartPage({ onNavigate }) {
 
               {/* Continue Shopping */}
               <button
-                onClick={() => onNavigate("products")}
+                onClick={() => onNavigate("/products")}
                 className="w-full text-center mt-8 pt-6 border-t border-gray-200 text-gray-600 hover:text-[#CA993B] font-medium transition flex items-center justify-center group"
               >
                 <svg

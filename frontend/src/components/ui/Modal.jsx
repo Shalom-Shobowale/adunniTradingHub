@@ -36,7 +36,7 @@ export function Modal({
       <div
         className={
           showSideImage
-            ? "absolute inset-0 bg-gradient-to-b from-[#F2D9A3] via-[#CA993B] to-[#8F6A1E] bg-opacity-50"
+            ? "absolute inset-0 bg-linear-to-b from-[#F2D9A3] via-[#CA993B] to-[#8F6A1E] bg-opacity-50"
             : "absolute inset-0 bg-white"
         }
         onClick={onClose}

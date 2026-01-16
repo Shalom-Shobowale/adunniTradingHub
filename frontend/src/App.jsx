@@ -1,8 +1,6 @@
-import { useState, useEffect } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { CartProvider } from "./contexts/CartContext";
-import { Header } from "./components/layout/Header";
-import { Footer } from "./components/layout/Footer";
 
 import HomePage from "./pages/HomePage";
 import ProductsPage from "./pages/ProductsPage";
@@ -15,53 +13,41 @@ import AdminDashboard from "./pages/AdminDashboard";
 import AboutPage from "./pages/AboutPage";
 import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import WishlistPage from "./pages/WishlistPage";
+import AuthCallback from "./pages/AuthCallback";
+import ScrollToTop from "./components/ScrollToTop";
 
-const pages = {
-  home: HomePage,
-  products: ProductsPage,
-  "product-detail": ProductDetailPage,
-  cart: CartPage,
-  checkout: CheckoutPage,
-  wholesale: WholesalePage,
-  dashboard: DashboardPage,
-  admin: AdminDashboard,
-  about: AboutPage,
-  "order-confirmation": OrderConfirmationPage,
-  wishlist: WishlistPage,
-};
+import { Header } from "./components/layout/Header";
+import { Footer } from "./components/layout/Footer";
 
 function App() {
-  const [currentPage, setCurrentPage] = useState("home");
-  const [pageData, setPageData] = useState({});
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [currentPage]);
-
-  // Universal navigation
-  const handleNavigate = (page, data = {}) => {
-    setCurrentPage(page);
-    setPageData(data);
-  };
-
-  // Get the correct page component
-  const CurrentPage = pages[currentPage] || HomePage;
-
   return (
     <AuthProvider>
       <CartProvider>
-        <div className="flex flex-col min-h-screen">
-          <Header onNavigate={handleNavigate} currentPage={currentPage} />
-
-          <main className="flex-1">
-            <CurrentPage
-              onNavigate={handleNavigate}
-              {...pageData} // send productId, orderNumber, etc
-            />
+        <BrowserRouter>
+          <Header />
+          <ScrollToTop />
+          <main className="min-h-screen">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/product/:productId" element={<ProductDetailPage />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
+              <Route path="/wholesale" element={<WholesalePage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/wishlist" element={<WishlistPage />} />
+              <Route
+                path="/order-confirmation"
+                element={<OrderConfirmationPage />}
+              />
+              <Route path="/auth/callback" element={<AuthCallback />} />
+            </Routes>
           </main>
 
-          <Footer onNavigate={handleNavigate} />
-        </div>
+          <Footer />
+        </BrowserRouter>
       </CartProvider>
     </AuthProvider>
   );

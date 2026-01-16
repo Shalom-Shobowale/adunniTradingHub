@@ -142,7 +142,7 @@ export default function DashboardPage({ onNavigate }) {
                       <p className="text-gray-600">No orders yet</p>
                       <Button
                         className="mt-4"
-                        onClick={() => onNavigate("products")}
+                        onClick={() => onNavigate("/products")}
                       >
                         Start Shopping
                       </Button>

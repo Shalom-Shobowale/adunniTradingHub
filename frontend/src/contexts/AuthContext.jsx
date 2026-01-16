@@ -78,6 +78,7 @@ export function AuthProvider({ children }) {
         email,
         password,
         options: {
+          emailRedirectTo: import.meta.env.VITE_SUPABASE_REDIRECT_URL,
           data: {
             full_name: userData.full_name,
             phone: userData.phone,

@@ -163,7 +163,7 @@ export default function WholesalePage({ onNavigate }) {
                 Your wholesale account is approved! Browse products to see
                 wholesale pricing.
               </p>
-              <Button className="mt-4" onClick={() => onNavigate("products")}>
+              <Button className="mt-4" onClick={() => onNavigate("/products")}>
                 View Products
               </Button>
             </Card>

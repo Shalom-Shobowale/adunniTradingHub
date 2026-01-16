@@ -5,11 +5,15 @@ import { Card } from "../components/ui/Card";
 import { supabase } from "../lib/supabase";
 import { formatCurrency } from "../lib/utils";
 import Section from "../components/Section";
+import { useNavigate } from "react-router-dom";
 
-export default function HomePage({ onNavigate }) {
+
+export default function HomePage() {
   const [featuredProducts, setFeaturedProducts] = useState([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+
 
   useEffect(() => {
     loadFeaturedProducts();
@@ -102,7 +106,7 @@ export default function HomePage({ onNavigate }) {
               <Button
                 size="lg"
                 variant="primary"
-                onClick={() => onNavigate("products")}
+                onClick={() => navigate("/products")}
               >
                 Shop Retail
                 <ArrowRight className="h-5 w-5" />
@@ -110,7 +114,7 @@ export default function HomePage({ onNavigate }) {
               <Button
                 size="lg"
                 variant="outline"
-                onClick={() => onNavigate("wholesale")}
+                onClick={() => navigate("/wholesale")}
                 className="border-white text-white hover:bg-white hover:text-[#CA993B]!"
               >
                 Wholesale Orders
@@ -223,7 +227,7 @@ export default function HomePage({ onNavigate }) {
                     padding="none"
                     className="cursor-pointer overflow-hidden group bg-white rounded-xl border border-gray-200 hover:border-amber-300 transition-all duration-300 shadow-sm hover:shadow-lg"
                     onClick={() =>
-                      onNavigate("product-detail", { productId: product.id })
+                      navigate(`/product/${product.id}`)
                     }
                   >
                     {/* Top ribbon for important badges */}
@@ -430,7 +434,7 @@ export default function HomePage({ onNavigate }) {
           )}
 
           <div className="text-center mt-8">
-            <Button size="lg" onClick={() => onNavigate("products")}>
+            <Button size="lg" onClick={() => navigate("/products")}>
               View All Products
               <ArrowRight className="h-5 w-5" />
             </Button>
@@ -455,7 +459,7 @@ export default function HomePage({ onNavigate }) {
                 competitive prices, consistent quality, and exceptional customer
                 service.
               </p>
-              <Button onClick={() => onNavigate("about")}>
+              <Button onClick={() => navigate("/about")}>
                 Learn More About Us
               </Button>
             </div>
@@ -535,7 +539,7 @@ export default function HomePage({ onNavigate }) {
           <Button
             size="lg"
             className="bg-[#CA993B] text-white hover:text-[#CA993B] hover:bg-white"
-            onClick={() => onNavigate("wholesale")}
+            onClick={() => navigate("/wholesale")}
           >
             Request Wholesale Quote
             <ArrowRight className="h-5 w-5" />

@@ -6,8 +6,9 @@ import { Select } from "../components/ui/Select";
 import { useAuth } from "../contexts/useAuth";
 import { supabase } from "../lib/supabase";
 import { formatCurrency } from "../lib/utils";
+import { useNavigate } from "react-router-dom";
 
-export default function ProductsPage({ onNavigate }) {
+export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -15,6 +16,7 @@ export default function ProductsPage({ onNavigate }) {
   const [gradeFilter, setGradeFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name");
   const { isWholesaleApproved } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadProducts();
@@ -186,7 +188,7 @@ export default function ProductsPage({ onNavigate }) {
                     className="cursor-pointer overflow-hidden group bg-white rounded-xl border border-gray-200 hover:border-[#CA993B] transition-all duration-300 shadow-sm hover:shadow-lg"
                     onClick={() => {
                       // console.log("CLICKED PRODUCT:", product.id);
-                      onNavigate("product-detail", { productId: product.id });
+                       navigate(`/product/${product.id}`);
                     }}
                   >
                     {/* Top ribbon for important badges */}

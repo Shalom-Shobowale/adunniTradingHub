@@ -22,8 +22,9 @@ import { supabase } from "../lib/supabase";
 import { formatCurrency } from "../lib/utils";
 import { useAuth } from "../contexts/useAuth";
 import { useCart } from "../contexts/useCart";
+import { useNavigate, useParams } from "react-router-dom";
 
-export default function ProductDetailPage({ productId, onNavigate }) {
+export default function ProductDetailPage() {
   const { user, isWholesaleApproved } = useAuth();
   const { addToCart } = useCart();
   const [product, setProduct] = useState(null);
@@ -35,6 +36,8 @@ export default function ProductDetailPage({ productId, onNavigate }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [reviews, setReviews] = useState([]);
   const [averageRating, setAverageRating] = useState(0);
+  const navigate = useNavigate();
+  const { productId } = useParams();
 
   useEffect(() => {
     loadProduct();
@@ -196,7 +199,7 @@ export default function ProductDetailPage({ productId, onNavigate }) {
       <div className="min-h-screen bg-gray-50 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-2xl font-bold mb-4">Product not found</h2>
-          <Button onClick={() => onNavigate("products")}>
+          <Button onClick={() => navigate("/products")}>
             Back to Products
           </Button>
         </div>
@@ -262,7 +265,7 @@ export default function ProductDetailPage({ productId, onNavigate }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Back button */}
         <button
-          onClick={() => onNavigate("products")}
+          onClick={() => navigate("/products")}
           className="flex items-center space-x-2 text-gray-600 hover:text-[#CA993B] mb-8 transition group"
         >
           <ArrowLeft className="h-5 w-5 group-hover:-translate-x-1 transition-transform" />

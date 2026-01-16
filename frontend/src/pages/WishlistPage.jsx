@@ -126,7 +126,7 @@ export default function WishlistPage({ onNavigate }) {
           <p className="text-gray-600 mb-8">
             Save items you love to your wishlist
           </p>
-          <Button size="lg" onClick={() => onNavigate("products")}>
+          <Button size="lg" onClick={() => onNavigate("/products")}>
             Browse Products
           </Button>
         </div>
