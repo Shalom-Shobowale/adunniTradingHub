@@ -71,71 +71,77 @@ export function Header() {
 
             {/* Right Actions */}
             <div className="hidden md:flex items-center space-x-4">
+              {/* Cart (always visible) */}
+              <Link
+                to="/cart"
+                className="relative p-2 hover:bg-gray-100 rounded-full transition"
+              >
+                <ShoppingCart className="h-6 w-6 text-gray-700" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#CA993B] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Wishlist (always visible) */}
               {user ? (
-                <>
-                  {/* Cart */}
-                  <Link
-                    to="/cart"
-                    className="relative p-2 hover:bg-gray-100 rounded-full transition"
-                  >
-                    <ShoppingCart className="h-6 w-6 text-gray-700" />
-                    {cartCount > 0 && (
-                      <span className="absolute -top-1 -right-1 bg-[#CA993B] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                        {cartCount}
-                      </span>
-                    )}
-                  </Link>
+                <Link
+                  to="/wishlist"
+                  className="p-2 hover:bg-gray-100 rounded-full transition"
+                >
+                  <Heart className="h-6 w-6 text-gray-700" />
+                </Link>
+              ) : (
+                <button
+                  onClick={() => handleAuthClick("login")}
+                  className="p-2 hover:bg-gray-100 rounded-full transition"
+                  title="Sign in to use wishlist"
+                >
+                  <Heart className="h-6 w-6 text-gray-700" />
+                </button>
+              )}
 
-                  {/* Wishlist */}
-                  <Link
-                    to="/wishlist"
-                    className="p-2 hover:bg-gray-100 rounded-full transition"
-                  >
-                    <Heart className="h-6 w-6 text-gray-700" />
-                  </Link>
+              {/* Account section */}
+              {user ? (
+                <div className="relative group">
+                  <button className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg transition">
+                    <User className="h-6 w-6 text-gray-700" />
+                    <span className="text-sm font-medium text-gray-700">
+                      {profile?.full_name}
+                    </span>
+                  </button>
 
-                  {/* Account Dropdown */}
-                  <div className="relative group">
-                    <button className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg transition">
-                      <User className="h-6 w-6 text-gray-700" />
-                      <span className="text-sm font-medium text-gray-700">
-                        {profile?.full_name}
-                      </span>
-                    </button>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    <Link
+                      to="/dashboard"
+                      className="flex items-center space-x-2 w-full px-4 py-3 text-left hover:bg-gray-50 transition"
+                    >
+                      <User className="h-4 w-4 text-gray-600" />
+                      <span className="text-sm text-gray-700">My Account</span>
+                    </Link>
 
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl border border-gray-200 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                    {isAdmin && (
                       <Link
-                        to="/dashboard"
+                        to="/admin"
                         className="flex items-center space-x-2 w-full px-4 py-3 text-left hover:bg-gray-50 transition"
                       >
-                        <User className="h-4 w-4 text-gray-600" />
+                        <LayoutDashboard className="h-4 w-4 text-gray-600" />
                         <span className="text-sm text-gray-700">
-                          My Account
+                          Admin Dashboard
                         </span>
                       </Link>
+                    )}
 
-                      {isAdmin && (
-                        <Link
-                          to="/admin"
-                          className="flex items-center space-x-2 w-full px-4 py-3 text-left hover:bg-gray-50 transition"
-                        >
-                          <LayoutDashboard className="h-4 w-4 text-gray-600" />
-                          <span className="text-sm text-gray-700">
-                            Admin Dashboard
-                          </span>
-                        </Link>
-                      )}
-
-                      <button
-                        onClick={handleSignOut}
-                        className="flex items-center space-x-2 w-full px-4 py-3 text-left hover:bg-gray-50 transition border-t border-gray-200"
-                      >
-                        <LogOut className="h-4 w-4 text-gray-600" />
-                        <span className="text-sm text-gray-700">Sign Out</span>
-                      </button>
-                    </div>
+                    <button
+                      onClick={handleSignOut}
+                      className="flex items-center space-x-2 w-full px-4 py-3 text-left hover:bg-gray-50 transition border-t border-gray-200"
+                    >
+                      <LogOut className="h-4 w-4 text-gray-600" />
+                      <span className="text-sm text-gray-700">Sign Out</span>
+                    </button>
                   </div>
-                </>
+                </div>
               ) : (
                 <>
                   <Button

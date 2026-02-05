@@ -6,15 +6,44 @@ import {
   Truck,
   Shield,
   Package,
+  AlertCircle,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { useCart } from "../contexts/useCart";
 import { formatCurrency } from "../lib/utils";
+import { useAuth } from "../contexts/useAuth";
+import { useState } from "react";
 
 export default function CartPage({ onNavigate }) {
-  const { cart, updateQuantity, removeFromCart, cartTotal, loading } =
-    useCart();
+  const {
+    cart,
+    updateQuantity,
+    removeFromCart,
+    cartTotal,
+    shippingCost,
+    total,
+    deliveryZone,
+    setDeliveryZone,
+    loading,
+  } = useCart();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [message, setMessage] = useState(null);
+  const handleProceedToCheckout = () => {
+    if (!user) {
+      setMessage({
+        type: "error",
+        text: "Please sign in to proceed to payment",
+      });
+
+      setTimeout(() => setMessage(null), 3000);
+      return;
+    }
+
+    navigate("/checkout");
+  };
 
   if (loading) {
     return (
@@ -62,9 +91,6 @@ export default function CartPage({ onNavigate }) {
     );
   }
 
-  const shippingCost = cartTotal > 5000 ? 0 : 2000;
-  const total = cartTotal + shippingCost;
-
   return (
     <div className="min-h-screen bg-linear-to-b from-gray-50 to-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,6 +99,21 @@ export default function CartPage({ onNavigate }) {
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
             Your Shopping Cart
           </h1>
+          {message && (
+            <div
+              className={`mb-8 p-4 rounded-xl border ${
+                message.type === "success"
+                  ? "bg-emerald-50 border-emerald-200 text-emerald-700"
+                  : "bg-red-50 border-red-200 text-red-700"
+              }`}
+            >
+              <div className="flex items-center">
+                <AlertCircle className="h-5 w-5 mr-2" />
+                {message.text}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-center text-gray-600">
             <span className="bg-[#CA993B] text-white px-3 py-1 rounded-full text-sm font-medium mr-3">
               {cart.length} {cart.length === 1 ? "item" : "items"}
@@ -125,7 +166,7 @@ export default function CartPage({ onNavigate }) {
                         </h3>
                         {item.price < item.product.retail_price && (
                           <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded ">
-                            WHOLESALE PRICE
+                            DISCOUNT PRICE
                           </span>
                         )}
                         <div className="flex flex-wrap gap-2 my-3">
@@ -163,9 +204,10 @@ export default function CartPage({ onNavigate }) {
                           >
                             <Minus className="h-4 w-4" />
                           </button>
-                          <span className="font-bold text-lg w-12 text-center">
-                            {item.quantity}
-                          </span>
+                          <div className="text-sm text-gray-600">
+                            {item.quantity} units
+                          </div>
+
                           <button
                             onClick={() =>
                               updateQuantity(item.id, item.quantity + 1)
@@ -231,6 +273,23 @@ export default function CartPage({ onNavigate }) {
                   </span>
                 </div>
 
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Delivery Location
+                  </label>
+
+                  <select
+                    value={deliveryZone}
+                    onChange={(e) => setDeliveryZone(e.target.value)}
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-[#CA993B] focus:border-[#CA993B]"
+                  >
+                    <option value="lagos_mainland">Lagos Mainland</option>
+                    <option value="lagos_island">Lagos Island</option>
+                    <option value="outskirts">Outskirts</option>
+                    <option value="interstate">Interstate</option>
+                  </select>
+                </div>
+
                 {shippingCost > 0 && cartTotal < 5000 && (
                   <div className="bg-amber-50 border border-amber-100 rounded-lg p-3">
                     <p className="text-sm text-amber-700">
@@ -258,7 +317,7 @@ export default function CartPage({ onNavigate }) {
               <Button
                 fullWidth
                 size="lg"
-                onClick={() => onNavigate("checkout")}
+                onClick={handleProceedToCheckout}
                 className="bg-linear-to-r from-[#CA993B] to-amber-600 hover:from-[#B8852F] hover:to-amber-700 shadow-lg hover:shadow-xl transition-all"
               >
                 Proceed to Checkout

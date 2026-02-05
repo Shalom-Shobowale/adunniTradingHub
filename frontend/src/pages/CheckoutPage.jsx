@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { CreditCard, MapPin, Package } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
@@ -10,8 +10,18 @@ import { formatCurrency } from "../lib/utils";
 import { API_BASE_URL } from "../config/api";
 
 export default function CheckoutPage({ onNavigate }) {
-  const { cart, cartTotal, clearCart } = useCart();
+  const {
+    cart,
+    cartTotal,
+    shippingCost,
+    total,
+    deliveryZone,
+    setDeliveryZone,
+    clearCart,
+  } = useCart();
+
   const { user } = useAuth();
+
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
 
@@ -66,15 +76,22 @@ export default function CheckoutPage({ onNavigate }) {
     "Zamfara",
     "FCT",
   ];
-
+  /* ------------------ OPTIONAL AUTO-ZONE LOGIC ------------------ */
+  useEffect(() => {
+    if (shippingInfo.state === "Lagos") {
+      setDeliveryZone("lagos_island"); // default
+    } else if (shippingInfo.state) {
+      setDeliveryZone("interstate");
+    }
+  }, [shippingInfo.state, setDeliveryZone]);
+  
+  // 🚫 No checkout with empty cart
   if (cart.length === 0) {
     onNavigate("cart");
     return null;
   }
 
-  const shippingCost = 2000;
-  const total = cartTotal + shippingCost;
-
+  /* ------------------ SUBMIT ORDER ------------------ */
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
@@ -90,6 +107,7 @@ export default function CheckoutPage({ onNavigate }) {
           userId: user.id,
           cart,
           shippingInfo,
+          deliveryZone,
           paymentMethod,
           subtotal: cartTotal,
           shippingCost,
@@ -98,7 +116,6 @@ export default function CheckoutPage({ onNavigate }) {
       });
 
       const data = await res.json();
-
       if (!data.success) throw new Error(data.error || "Order creation failed");
 
       await clearCart();
@@ -114,7 +131,6 @@ export default function CheckoutPage({ onNavigate }) {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -128,12 +144,14 @@ export default function CheckoutPage({ onNavigate }) {
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* ------------------ LEFT ------------------ */}
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <div className="flex items-center space-x-2 mb-6">
                   <MapPin className="h-6 w-6 text-[#CA993B]" />
                   <h2 className="text-2xl font-bold">Shipping Information</h2>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
                     label="Full Name"
@@ -146,6 +164,7 @@ export default function CheckoutPage({ onNavigate }) {
                       })
                     }
                   />
+
                   <Input
                     label="Phone Number"
                     type="tel"
@@ -158,6 +177,7 @@ export default function CheckoutPage({ onNavigate }) {
                       })
                     }
                   />
+
                   <div className="md:col-span-2">
                     <Input
                       label="Street Address"
@@ -171,6 +191,7 @@ export default function CheckoutPage({ onNavigate }) {
                       }
                     />
                   </div>
+
                   <Input
                     label="City"
                     required
@@ -179,6 +200,7 @@ export default function CheckoutPage({ onNavigate }) {
                       setShippingInfo({ ...shippingInfo, city: e.target.value })
                     }
                   />
+
                   <Select
                     label="State"
                     required
@@ -197,6 +219,7 @@ export default function CheckoutPage({ onNavigate }) {
                       })),
                     ]}
                   />
+
                   <Input
                     label="Postal Code"
                     value={shippingInfo.postal_code}
@@ -207,6 +230,7 @@ export default function CheckoutPage({ onNavigate }) {
                       })
                     }
                   />
+
                   <Input
                     label="Country"
                     disabled
@@ -220,6 +244,7 @@ export default function CheckoutPage({ onNavigate }) {
                   <CreditCard className="h-6 w-6 text-[#CA993B]" />
                   <h2 className="text-2xl font-bold">Payment Method</h2>
                 </div>
+
                 <Select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
@@ -229,19 +254,10 @@ export default function CheckoutPage({ onNavigate }) {
                     { value: "cash_on_delivery", label: "Cash on Delivery" },
                   ]}
                 />
-                <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800">
-                    {paymentMethod === "bank_transfer" &&
-                      "Bank details will be provided after order confirmation."}
-                    {paymentMethod === "card" &&
-                      "You will be redirected to our secure payment gateway."}
-                    {paymentMethod === "cash_on_delivery" &&
-                      "Pay when your order is delivered to you."}
-                  </p>
-                </div>
               </Card>
             </div>
 
+            {/* ------------------ RIGHT ------------------ */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <div className="flex items-center space-x-2 mb-6">
@@ -252,32 +268,32 @@ export default function CheckoutPage({ onNavigate }) {
                 <div className="space-y-4 mb-6">
                   {cart.map((item) => (
                     <div key={item.id} className="flex justify-between text-sm">
-                      <span className="text-gray-700">
+                      <span>
                         {item.product.name} × {item.quantity}
                       </span>
                       <span className="font-medium">
-                        {formatCurrency(
-                          item.product.retail_price * item.quantity
-                        )}
+                        {formatCurrency(item.price * item.quantity)}
                       </span>
                     </div>
                   ))}
                 </div>
 
                 <div className="space-y-3 border-t border-gray-200 pt-4 mb-6">
-                  <div className="flex justify-between text-gray-700">
+                  <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span className="font-medium">
-                      {formatCurrency(cartTotal)}
-                    </span>
+                    <span>{formatCurrency(cartTotal)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700">
+
+                  <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span className="font-medium">
-                      {formatCurrency(shippingCost)}
+                    <span>
+                      {shippingCost === 0
+                        ? "FREE"
+                        : formatCurrency(shippingCost)}
                     </span>
                   </div>
-                  <div className="border-t border-gray-200 pt-3 flex justify-between text-lg font-bold">
+
+                  <div className="border-t pt-3 flex justify-between text-lg font-bold">
                     <span>Total</span>
                     <span className="text-[#CA993B]">
                       {formatCurrency(total)}

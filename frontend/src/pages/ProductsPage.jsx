@@ -43,24 +43,20 @@ export default function ProductsPage() {
       // Fetch wholesale prices for those products
       let wholesaleData = [];
 
-      if (isWholesaleApproved) {
-        const { data, error } = await supabase
-          .from("wholesale_pricing")
-          .select("*")
-          .in("product_id", productIds);
+      const { data, error } = await supabase
+        .from("wholesale_pricing")
+        .select("*")
+        .in("product_id", productIds);
 
-        if (error) throw error;
-        wholesaleData = data || [];
-      }
-
-      // if (wholesaleError) throw wholesaleError;
+      if (error) throw error;
+      wholesaleData = data || [];
 
       // Attach wholesale pricing to each product
       const productsWithWholesale = productsData.map((product) => ({
         ...product,
-        wholesale_pricing: isWholesaleApproved
-          ? wholesaleData.filter((w) => w.product_id === product.id)
-          : [],
+        wholesale_pricing: wholesaleData.filter(
+          (w) => w.product_id === product.id,
+        ),
       }));
 
       setProducts(productsWithWholesale);
@@ -78,7 +74,7 @@ export default function ProductsPage() {
       filtered = filtered.filter(
         (product) =>
           product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          product.description.toLowerCase().includes(searchQuery.toLowerCase())
+          product.description.toLowerCase().includes(searchQuery.toLowerCase()),
       );
     }
 
@@ -89,9 +85,9 @@ export default function ProductsPage() {
     filtered.sort((a, b) => {
       switch (sortBy) {
         case "price-low":
-          return a.retail_price - b.retail_price;
+          return a.retail_price * 12 - b.retail_price * 12;
         case "price-high":
-          return b.retail_price - a.retail_price;
+          return b.retail_price * 12 - a.retail_price * 12;
         case "name":
         default:
           return a.name.localeCompare(b.name);
@@ -180,6 +176,8 @@ export default function ProductsPage() {
                       : images[0]?.url
                     : "https://images.pexels.com/photos/4113773/pexels-photo-4113773.jpeg";
 
+                const displayDozenPrice = product.retail_price * 12;
+
                 return (
                   <Card
                     key={product.id}
@@ -188,13 +186,19 @@ export default function ProductsPage() {
                     className="cursor-pointer overflow-hidden group bg-white rounded-xl border border-gray-200 hover:border-[#CA993B] transition-all duration-300 shadow-sm hover:shadow-lg"
                     onClick={() => {
                       // console.log("CLICKED PRODUCT:", product.id);
-                       navigate(`/product/${product.id}`);
+                      navigate(`/product/${product.id}`);
                     }}
                   >
                     {/* Top ribbon for important badges */}
                     <div className="absolute top-2 left-2 z-10 flex gap-1">
                       <span className="px-2 py-1 bg-[#CA993B] text-white text-xs font-bold rounded-full shadow">
                         {product.drying_method || "SUN-DRIED"}
+                      </span>
+                      <span className="px-2 py-1 bg-black/80 text-white text-xs font-bold rounded-full">
+                        Sold in{" "}
+                        {isWholesaleApproved
+                          ? "bags (10 dozen)"
+                          : "dozens (12 units)"}
                       </span>
                       {product.is_fresh && (
                         <span className="px-2 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full shadow">
@@ -260,9 +264,18 @@ export default function ProductsPage() {
                     <div className="p-3">
                       {/* Product name with cut type */}
                       <div className="flex justify-between items-start mb-1">
-                        <h3 className="font-bold text-gray-900 text-sm line-clamp-1 flex-1">
-                          {product.name}
-                        </h3>
+                        <div>
+                          <h3 className="font-bold text-gray-900 text-sm line-clamp-1 flex-1">
+                            {product.name}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            Sold in{" "}
+                            {isWholesaleApproved
+                              ? "bags (10 dozen)"
+                              : "dozens (12 units)"}
+                          </p>
+                        </div>
+
                         <span className="text-xs font-medium text-gray-600 bg-gray-100 px-2 py-1 rounded ml-2">
                           {product.cut_type || "STRIPS"}
                         </span>
@@ -297,9 +310,9 @@ export default function ProductsPage() {
                                 clipRule="evenodd"
                               />
                             </svg>
-                            <span className="text-xs text-gray-700 font-medium">
+                            {/* <span className="text-xs text-gray-700 font-medium">
                               {product.weight_per_unit}kg
-                            </span>
+                            </span> */}
                           </div>
                           <div className="flex items-center">
                             <svg
@@ -324,18 +337,28 @@ export default function ProductsPage() {
                         <div className="text-right">
                           <div className="flex items-baseline">
                             <span className="text-lg font-bold text-[#CA993B]">
-                              {formatCurrency(product.retail_price)}
+                              {formatCurrency(displayDozenPrice)}
                             </span>
                             <span className="text-xs text-gray-500 ml-1">
-                              /unit
+                              /dozen
                             </span>
                           </div>
+                          {/* note */}
+                          {isWholesaleApproved && (
+                            <div className="text-xs text-gray-600 mt-1">
+                              ≈{" "}
+                              {formatCurrency(product.retail_price * 12 * 10)}{" "}
+                              / bag
+                            </div>
+                          )}
+
                           {/* Wholesale pricing section */}
-                          {isWholesaleApproved &&
+
+                          {/* {isWholesaleApproved &&
                             product.wholesale_pricing.length > 0 && (
                               <div className="mt-2">
                                 <h4 className="font-semibold text-sm mb-1">
-                                  Wholesale Pricing:
+                                  Volume Pricing:
                                 </h4>
                                 <ul className="text-xs text-gray-700">
                                   {product.wholesale_pricing.map(
@@ -346,14 +369,18 @@ export default function ProductsPage() {
                                       price_per_unit,
                                     }) => (
                                       <li key={id}>
-                                        {min_quantity} - {max_quantity} units: ₦
-                                        {price_per_unit.toFixed(2)} per unit
+                                        {Math.floor(min_quantity / 12)}–
+                                        {Math.floor(max_quantity / 12)} dozen:{" "}
+                                        {formatCurrency(price_per_unit * 12)} /
+                                        dozen
                                       </li>
-                                    )
+                                    ),
                                   )}
                                 </ul>
                               </div>
-                            )}
+                            )} */}
+
+
                           {/* {console.log(
                             "Wholesale approved?",
                             isWholesaleApproved,
@@ -361,13 +388,10 @@ export default function ProductsPage() {
                             product.min_wholesale_quantity
                           )} */}
 
-                          {!isWholesaleApproved &&
-                            product.min_wholesale_quantity > 1 && (
-                              <p className="text-xs text-gray-500 mt-2">
-                                Wholesale pricing available for approved
-                                partners
-                              </p>
-                            )}
+                          {/* <p className="text-xs text-gray-500 mt-1">
+                            Discounts apply automatically when quantity
+                            increases
+                          </p> */}
 
                           {/* Dynamic stock status */}
                           <div
@@ -375,8 +399,8 @@ export default function ProductsPage() {
                               product.stock_quantity > 10
                                 ? "text-[#CA993B]"
                                 : product.stock_quantity > 0
-                                ? "text-[#CA993B]"
-                                : "text-[#CA993B]"
+                                  ? "text-[#CA993B]"
+                                  : "text-[#CA993B]"
                             }`}
                           >
                             <svg
@@ -393,8 +417,8 @@ export default function ProductsPage() {
                             {product.stock_quantity > 10
                               ? "IN STOCK"
                               : product.stock_quantity > 0
-                              ? "LOW STOCK"
-                              : "OUT OF STOCK"}
+                                ? "LOW STOCK"
+                                : "OUT OF STOCK"}
                           </div>
                         </div>
                       </div>

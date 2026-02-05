@@ -20,6 +20,7 @@ import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { supabase } from "../lib/supabase";
 import { formatCurrency } from "../lib/utils";
+import { DOZEN_SIZE, BAG_SIZE } from "../lib/purchaseRules";
 import { useAuth } from "../contexts/useAuth";
 import { useCart } from "../contexts/useCart";
 import { useNavigate, useParams } from "react-router-dom";
@@ -30,7 +31,9 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [wholesalePricing, setWholesalePricing] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [quantity, setQuantity] = useState(1);
+  const [dozens, setDozens] = useState(1); // retail
+  const [bags, setBags] = useState(1); // wholesale
+
   const [addingToCart, setAddingToCart] = useState(false);
   const [message, setMessage] = useState(null);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -42,6 +45,11 @@ export default function ProductDetailPage() {
   useEffect(() => {
     loadProduct();
   }, [productId]);
+
+  // note that quantity here is in units
+  const finalQuantity = isWholesaleApproved
+    ? bags * BAG_SIZE // 1 bag = 1200 units
+    : dozens * DOZEN_SIZE; // 1 dozen = 12 units
 
   const loadProduct = async () => {
     try {
@@ -84,26 +92,18 @@ export default function ProductDetailPage() {
       sorted.find(
         (tier) =>
           quantity >= tier.min_quantity &&
-          (tier.max_quantity === null || quantity <= tier.max_quantity)
+          (tier.max_quantity === null || quantity <= tier.max_quantity),
       )?.price_per_unit ?? null
     );
   };
 
   const handleAddToCart = async () => {
-    if (!user) {
-      setMessage({
-        type: "error",
-        text: "Please sign in to add items to cart",
-      });
-      return;
-    }
-
     if (!product || product.stock_quantity === 0) {
       setMessage({ type: "error", text: "Product is out of stock" });
       return;
     }
 
-    if (quantity > product.stock_quantity) {
+    if (finalQuantity > product.stock_quantity) {
       setMessage({
         type: "error",
         text: `Only ${product.stock_quantity} items available`,
@@ -114,24 +114,39 @@ export default function ProductDetailPage() {
     setAddingToCart(true);
 
     try {
-      // Determine current price
-      const currentPrice = isWholesaleApproved
-        ? getWholesalePrice(quantity, wholesalePricing) ?? product.retail_price
-        : product.retail_price;
+      // 1. Determine unit price
+      const unitPrice =
+        getWholesalePrice(finalQuantity, wholesalePricing) ??
+        product.retail_price;
 
-      const safePrice = Number(currentPrice);
+      const safePrice = Number(unitPrice);
+
+      // 2. Validate price
       if (isNaN(safePrice) || safePrice <= 0) {
         setMessage({
           type: "error",
           text: "Invalid product price, cannot add to cart",
         });
-        setAddingToCart(false);
         return;
       }
 
-      // Add to cart
-      await addToCart(productId, quantity, safePrice);
-      setMessage({ type: "success", text: "Added to cart successfully!" });
+      // 3. Validate stock
+      if (finalQuantity > product.stock_quantity) {
+        setMessage({
+          type: "error",
+          text: `Only ${product.stock_quantity} units available`,
+        });
+        return;
+      }
+
+      // 4. Add to cart (ONCE)
+      await addToCart(productId, finalQuantity);
+
+      setMessage({
+        type: "success",
+        text: "Added to cart successfully!",
+      });
+
       setTimeout(() => setMessage(null), 3000);
     } catch (error) {
       console.error("Add to cart error:", error);
@@ -213,11 +228,10 @@ export default function ProductDetailPage() {
       ? images.map((img) => (typeof img === "string" ? img : img?.url))
       : ["https://images.pexels.com/photos/4113773/pexels-photo-4113773.jpeg"];
 
-  const wholesaleUnitPrice = isWholesaleApproved
-    ? getWholesalePrice(quantity, wholesalePricing)
-    : null;
 
-  const currentPrice = wholesaleUnitPrice ?? product.retail_price;
+  const activeTierPrice = getWholesalePrice(finalQuantity, wholesalePricing);
+
+  const unitPrice = activeTierPrice ?? product.retail_price;
 
   // Get all ponmo-specific fields
   const ponmoDetails = [
@@ -365,10 +379,10 @@ export default function ProductDetailPage() {
                 <span className="px-3 py-1 bg-[#CA993B] bg-opacity-10 text-[#CA993B] font-medium rounded-full">
                   {product.grade}
                 </span>
-                <span className="text-gray-600 flex items-center">
+                {/* <span className="text-gray-600 flex items-center">
                   <Scale className="h-4 w-4 mr-1" />
                   {product.weight_per_unit}kg per unit
-                </span>
+                </span> */}
                 <span className="text-gray-600 flex items-center">
                   <Package className="h-4 w-4 mr-1" />
                   {product.cut_type || "STRIPS"}
@@ -381,28 +395,44 @@ export default function ProductDetailPage() {
               <div className="p-0 md:p-6">
                 <div className="flex items-end justify-between mb-4">
                   <div>
+                    {/* Total Price */}
                     <div className="text-4xl font-bold text-[#CA993B]">
-                      {formatCurrency(currentPrice * quantity)}
+                      {formatCurrency(unitPrice * finalQuantity)}
                     </div>
+
+                    {/* Price Breakdown */}
                     <div className="text-sm text-gray-600 mt-1">
-                      {formatCurrency(currentPrice)} × {quantity} unit
-                      {quantity > 1 ? "s" : ""}
+                      {formatCurrency(unitPrice)} per unit ×{" "}
+                      {isWholesaleApproved
+                        ? `${bags} bag(s)`
+                        : `${dozens} dozen`}
+                    </div>
+
+                    <p className="text-xs text-gray-500 mt-1">
+                      Volume discounts apply automatically at checkout
+                    </p>
+
+                    {/* Extra clarity (optional but recommended) */}
+                    <div className="text-xs text-gray-500 mt-1">
+                      {finalQuantity} units total
                     </div>
                   </div>
+
+                  {/* Stock Badge */}
                   <div
                     className={`text-sm font-semibold px-3 py-1 rounded-full ${
                       product.stock_quantity > 10
                         ? "bg-[#CA993B] text-white"
                         : product.stock_quantity > 0
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-red-100 text-red-700"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-red-100 text-red-700"
                     }`}
                   >
                     {product.stock_quantity > 10
                       ? "In Stock"
                       : product.stock_quantity > 0
-                      ? "Low Stock"
-                      : "Out of Stock"}
+                        ? "Low Stock"
+                        : "Out of Stock"}
                   </div>
                 </div>
 
@@ -412,48 +442,82 @@ export default function ProductDetailPage() {
                 </p>
 
                 {/* Quantity Selector */}
+                {/* Quantity Selector */}
                 {product.stock_quantity > 0 && (
-                  <div className="flex flex-col md:flex-row md:items-center space-x-4 space-y-4">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Quantity
-                      </label>
-                      <div className="flex items-center border border-gray-300 rounded-lg overflow-hidden">
-                        <button
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          className="px-4 py-3 bg-gray-100 hover:bg-gray-200 transition"
-                        >
-                          −
-                        </button>
-                        <Input
-                          type="number"
-                          min="1"
-                          max={product.stock_quantity}
-                          value={quantity}
-                          onChange={(e) => {
-                            const value = Math.max(
-                              1,
-                              Math.min(
-                                product.stock_quantity,
-                                Number(e.target.value) || 1
-                              )
-                            );
-                            setQuantity(value);
-                          }}
-                          className="border-0 text-center rounded-none"
-                        />
-                        <button
-                          onClick={() =>
-                            setQuantity(
-                              Math.min(product.stock_quantity, quantity + 1)
-                            )
-                          }
-                          className="px-4 py-3 bg-gray-100 hover:bg-gray-200 transition"
-                        >
-                          +
-                        </button>
+                  <div className="flex flex-col md:flex-row md:items-center gap-4">
+                    {/* RETAIL (Dozens) */}
+                    {!isWholesaleApproved && (
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Quantity (Dozen)
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setDozens((d) => Math.max(1, d - 1))}
+                            className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                          >
+                            −
+                          </button>
+
+                          <Input
+                            type="number"
+                            value={dozens}
+                            readOnly
+                            className="w-20 text-center"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => setDozens((d) => d + 1)}
+                            className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          {dozens} dozen = {dozens * DOZEN_SIZE} units
+                        </p>
                       </div>
-                    </div>
+                    )}
+
+                    {/* WHOLESALE (Bags) */}
+                    {isWholesaleApproved && (
+                      <div className="flex-1">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Quantity (Bag)
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setBags((b) => Math.max(1, b - 1))}
+                            className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                          >
+                            −
+                          </button>
+
+                          <Input
+                            type="number"
+                            value={bags}
+                            readOnly
+                            className="w-20 text-center"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => setBags((b) => b + 1)}
+                            className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
+                          >
+                            +
+                          </button>
+                        </div>
+
+                        <p className="text-xs text-gray-500 mt-1">
+                          {bags} bag = {bags * BAG_SIZE} units
+                        </p>
+                      </div>
+                    )}
 
                     {/* Action Buttons */}
                     <div className="flex-1 space-y-2">
@@ -462,17 +526,18 @@ export default function ProductDetailPage() {
                         size="lg"
                         onClick={handleAddToCart}
                         disabled={addingToCart}
-                        className="bg-[#CA993B] hover:bg-[#B8852F] transition-colors"
+                        className="bg-[#CA993B] hover:bg-[#B8852F]"
                       >
                         <ShoppingCart className="h-5 w-5 mr-2" />
                         {addingToCart ? "Adding..." : "Add to Cart"}
                       </Button>
+
                       <Button
                         fullWidth
                         variant="outline"
                         size="lg"
                         onClick={handleAddToWishlist}
-                        className="border-[#CA993B] text-[#CA993B] hover:bg-[#CA993B]/25"
+                        className="border-[#CA993B] text-[#CA993B]"
                       >
                         <Heart className="h-5 w-5 mr-2" />
                         Add to Wishlist
@@ -563,32 +628,33 @@ export default function ProductDetailPage() {
             </div>
 
             {/* Wholesale Pricing */}
-            {isWholesaleApproved && wholesalePricing.length > 0 && (
+            {wholesalePricing.length > 0 && (
               <Card className="bg-linear-to-r from-gray-50 to-white">
                 <h3 className="font-bold text-lg mb-4 flex items-center">
                   <Users className="h-5 w-5 mr-2 text-[#CA993B]" />
-                  Wholesale Pricing (Bulk Orders)
+                  Volume Pricing (Buy More, Save More)
                 </h3>
                 <div className="space-y-3">
                   {wholesalePricing.map((tier) => {
                     const isActiveTier =
-                      wholesaleUnitPrice === tier.price_per_unit;
+                      activeTierPrice === tier.price_per_unit;
 
                     return (
                       <div key={tier.id} className="p-4 border rounded-lg">
                         <div className="flex justify-between">
                           <span>
-                            {tier.min_quantity} – {tier.max_quantity || "∞"}{" "}
-                            units
+                            {tier.min_quantity / 12} –{" "}
+                            {tier.max_quantity ? tier.max_quantity / 12 : "∞"}{" "}
+                            dozen
                           </span>
                           <span className="font-bold">
-                            {formatCurrency(tier.price_per_unit)}/unit
+                            {formatCurrency(tier.price_per_unit)}/ dozen
                           </span>
                         </div>
 
                         {isActiveTier && (
                           <p className="text-sm text-emerald-600 font-medium mt-2">
-                            Active wholesale price
+                            Your current price tier
                           </p>
                         )}
                       </div>
@@ -597,8 +663,8 @@ export default function ProductDetailPage() {
                 </div>
                 {minWholesaleQty && (
                   <p className="text-sm text-gray-600 mt-4 p-4 bg-gray-50 rounded-lg">
-                    <span className="font-medium">Note:</span> Minimum wholesale
-                    order is {minWholesaleQty} units. Contact us for custom bulk
+                    <span className="font-medium">Note:</span> Volume discounts
+                    start at {minWholesaleQty} units. Contact us for custom bulk
                     orders.
                   </p>
                 )}

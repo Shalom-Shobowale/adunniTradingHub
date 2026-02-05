@@ -7,7 +7,7 @@ import { Textarea } from "../components/ui/Textarea";
 import { Select } from "../components/ui/Select";
 import { Modal } from "../components/ui/Modal";
 import { supabase } from "../lib/supabase";
-import { API_BASE_URL } from "../config/api"
+import { API_BASE_URL } from "../config/api";
 import { formatCurrency, generateSlug } from "../lib/utils";
 
 export default function AdminDashboard() {
@@ -140,7 +140,7 @@ export default function AdminDashboard() {
 
           wholesaleData = await res.json();
           setWholesaleTabData(
-            Array.isArray(wholesaleData) ? wholesaleData : []
+            Array.isArray(wholesaleData) ? wholesaleData : [],
           );
         }
 
@@ -220,13 +220,10 @@ export default function AdminDashboard() {
 
       // ✅ CREATE or UPDATE
       if (editingProduct) {
-        await adminFetch(
-          `${API_BASE_URL}/products/${editingProduct.id}`,
-          {
-            method: "PUT",
-            body: JSON.stringify(productData),
-          }
-        );
+        await adminFetch(`${API_BASE_URL}/products/${editingProduct.id}`, {
+          method: "PUT",
+          body: JSON.stringify(productData),
+        });
       } else {
         await adminFetch(`${API_BASE_URL}/products`, {
           method: "POST",
@@ -336,8 +333,8 @@ export default function AdminDashboard() {
       // Update UI immediately
       setProfiles((prev) =>
         prev.map((p) =>
-          p.id === profileId ? { ...p, wholesale_approved: !currentValue } : p
-        )
+          p.id === profileId ? { ...p, wholesale_approved: !currentValue } : p,
+        ),
       );
     } catch (error) {
       console.error("Error toggling wholesale approval:", error.message);
@@ -401,7 +398,7 @@ export default function AdminDashboard() {
               >
                 {tab}
               </button>
-            )
+            ),
           )}
         </div>
 
@@ -562,8 +559,8 @@ export default function AdminDashboard() {
                             product.stock_quantity > 10
                               ? "text-emerald-600"
                               : product.stock_quantity > 0
-                              ? "text-amber-600"
-                              : "text-red-600"
+                                ? "text-amber-600"
+                                : "text-red-600"
                           }`}
                         >
                           {product.stock_quantity > 0
@@ -658,12 +655,12 @@ export default function AdminDashboard() {
                             order.status === "delivered"
                               ? "bg-green-100 text-green-800"
                               : order.status === "shipped"
-                              ? "bg-blue-100 text-blue-800"
-                              : order.status === "processing"
-                              ? "bg-purple-100 text-purple-800"
-                              : order.status === "cancelled"
-                              ? "bg-red-100 text-red-800"
-                              : "bg-amber-100 text-amber-800"
+                                ? "bg-blue-100 text-blue-800"
+                                : order.status === "processing"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : order.status === "cancelled"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-amber-100 text-amber-800"
                           }`}
                         >
                           {order.status || "Pending"}
@@ -765,7 +762,7 @@ export default function AdminDashboard() {
                         onClick={() =>
                           toggleWholesaleApproval(
                             profile.id,
-                            profile.wholesale_approved
+                            profile.wholesale_approved,
                           )
                         }
                       >
@@ -811,10 +808,14 @@ export default function AdminDashboard() {
                       size="sm"
                       onClick={() => {
                         setEditingWholesale(item);
+                        const DOZEN_SIZE = 12;
                         setWholesaleForm({
                           product_id: item.product_id,
-                          min_quantity: item.min_quantity,
-                          max_quantity: item.max_quantity,
+                          min_quantity: item.min_quantity / DOZEN_SIZE,
+                          max_quantity:
+                            item.max_quantity === null
+                              ? null
+                              : item.max_quantity / DOZEN_SIZE,
                           price_per_unit: item.price_per_unit,
                         });
 
@@ -832,21 +833,21 @@ export default function AdminDashboard() {
                             `${API_BASE_URL}/admin/wholesale/${item.id}`,
                             {
                               method: "DELETE",
-                            }
+                            },
                           );
                           setWholesaleTabData((prev) =>
-                            prev.filter((w) => w.id !== item.id)
+                            prev.filter((w) => w.id !== item.id),
                           );
                         } catch (err) {
                           console.error(
                             "Error deleting wholesale entry:",
-                            err.message
+                            err.message,
                           );
                           alert("Failed to delete wholesale entry");
                         }
 
                         setWholesaleTabData((prev) =>
-                          prev.filter((w) => w.id !== item.id)
+                          prev.filter((w) => w.id !== item.id),
                         );
                       }}
                     >
@@ -885,10 +886,16 @@ export default function AdminDashboard() {
                 return;
               }
 
+              const DOZEN_SIZE = 12;
+
               const data = {
                 product_id: wholesaleForm.product_id,
-                min_quantity: Number(wholesaleForm.min_quantity),
-                max_quantity: Number(wholesaleForm.max_quantity),
+                min_quantity: Number(wholesaleForm.min_quantity) * DOZEN_SIZE,
+                max_quantity:
+                  wholesaleForm.max_quantity === "" ||
+                  wholesaleForm.max_quantity === null
+                    ? null
+                    : Number(wholesaleForm.max_quantity) * DOZEN_SIZE,
                 price_per_unit: Number(wholesaleForm.price_per_unit),
               };
 
@@ -906,15 +913,21 @@ export default function AdminDashboard() {
               const overlap = existingRanges?.some((range) => {
                 if (editingWholesale && range.id === editingWholesale.id)
                   return false;
-                return !(
-                  data.max_quantity < range.min_quantity ||
-                  data.min_quantity > range.max_quantity
-                );
+
+                const existingMin = range.min_quantity;
+                const existingMax =
+                  range.max_quantity === null ? Infinity : range.max_quantity;
+
+                const newMin = data.min_quantity;
+                const newMax =
+                  data.max_quantity === null ? Infinity : data.max_quantity;
+
+                return newMin <= existingMax && newMax >= existingMin;
               });
 
               if (overlap) {
                 alert(
-                  "Quantity range overlaps with an existing wholesale price"
+                  "Quantity range overlaps with an existing wholesale price",
                 );
                 return;
               }
@@ -927,7 +940,7 @@ export default function AdminDashboard() {
                     {
                       method: "PUT",
                       body: JSON.stringify(data),
-                    }
+                    },
                   );
                 } else {
                   await adminFetch(`${API_BASE_URL}/admin/wholesale`, {
@@ -938,7 +951,7 @@ export default function AdminDashboard() {
 
                 // Refresh wholesale data
                 const updated = await adminFetch(
-                  `${API_BASE_URL}/admin/wholesale`
+                  `${API_BASE_URL}/admin/wholesale`,
                 );
                 setWholesaleTabData(updated || []);
 
@@ -967,7 +980,7 @@ export default function AdminDashboard() {
       max_quantity,
       price_per_unit,
       products ( name )
-    `
+    `,
                 )
                 .order("min_quantity", { ascending: true });
 
@@ -1012,17 +1025,17 @@ export default function AdminDashboard() {
               required
             />
             <Input
-              label="Maximum Quantity"
+              label="Maximum Quantity (leave empty for unlimited)"
               type="number"
-              value={wholesaleForm.max_quantity}
+              value={wholesaleForm.max_quantity ?? ""}
               onChange={(e) =>
                 setWholesaleForm({
                   ...wholesaleForm,
-                  max_quantity: e.target.value,
+                  max_quantity: e.target.value === "" ? null : e.target.value,
                 })
               }
-              required
             />
+
             <Input
               label="Wholesale Price"
               type="number"
