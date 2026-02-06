@@ -161,16 +161,33 @@ export function Header() {
             </div>
 
             {/* Mobile Menu Button */}
-            <button
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? (
-                <X className="h-6 w-6 text-gray-700" />
-              ) : (
-                <Menu className="h-6 w-6 text-gray-700" />
-              )}
-            </button>
+            {/* Mobile Header Actions */}
+            <div className="md:hidden flex items-center gap-2">
+              {/* Cart — ALWAYS visible */}
+              <Link
+                to="/cart"
+                className="relative p-2 hover:bg-gray-100 rounded-lg transition"
+              >
+                <ShoppingCart className="h-6 w-6 text-gray-700" />
+                {cartCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-[#CA993B] text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                    {cartCount}
+                  </span>
+                )}
+              </Link>
+
+              {/* Hamburger Menu */}
+              <button
+                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6 text-gray-700" />
+                ) : (
+                  <Menu className="h-6 w-6 text-gray-700" />
+                )}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -197,14 +214,14 @@ export function Header() {
 
               {user ? (
                 <>
-                  <Link
+                  {/* <Link
                     to="/cart"
                     onClick={() => setMobileMenuOpen(false)}
                     className="flex items-center space-x-2 w-full px-4 py-2 rounded-lg hover:bg-gray-100 transition"
                   >
                     <ShoppingCart className="h-5 w-5" />
                     <span>Cart {cartCount > 0 && `(${cartCount})`}</span>
-                  </Link>
+                  </Link> */}
 
                   <Link
                     to="/dashboard"
