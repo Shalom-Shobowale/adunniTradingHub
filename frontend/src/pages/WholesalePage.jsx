@@ -112,10 +112,10 @@ export default function WholesalePage({ onNavigate }) {
   ];
 
   const pricingTiers = [
-    { range: "10 - 20 dozen", discount: "10% off" },
-    { range: "21 - 50 dozen", discount: "15% off" },
-    { range: "51 - 100 dozen", discount: "20% off" },
-    { range: "100+ dozen", discount: "Custom pricing" },
+    { range: "100 - 200 dozen", discount: "10% off" },
+    { range: "201 - 300 dozen", discount: "15% off" },
+    { range: "301 - 400 dozen", discount: "20% off" },
+    { range: "401+ dozen", discount: "Custom pricing" },
   ];
 
   const contactInfo = [
@@ -125,7 +125,7 @@ export default function WholesalePage({ onNavigate }) {
       value: ["+2348023546947", "+2347066898121"],
       type: "phone",
     },
-    { label: "Business Hours", value: "Mon - Fri, 9AM - 6PM", type: "text" },
+    { label: "Business Hours", value: "Mon - Sat, 9AM - 6PM", type: "text" },
   ];
 
   return (

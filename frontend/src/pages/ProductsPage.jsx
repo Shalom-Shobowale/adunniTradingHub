@@ -347,7 +347,7 @@ export default function ProductsPage() {
                           {isWholesaleApproved && (
                             <div className="text-xs text-gray-600 mt-1">
                               ≈{" "}
-                              {formatCurrency(product.retail_price * 12 * 10)}{" "}
+                              {formatCurrency(product.retail_price * 12 * 100)}{" "}
                               / bag
                             </div>
                           )}
