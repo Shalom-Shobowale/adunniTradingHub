@@ -3,7 +3,7 @@ import { cn } from "../../lib/utils";
 
 export const Select = forwardRef(function Select(
   { label, error, options, className, ...props },
-  ref
+  ref,
 ) {
   return (
     <div className="w-full">
@@ -17,14 +17,16 @@ export const Select = forwardRef(function Select(
       <select
         ref={ref}
         className={cn(
-          "w-full px-4 py-2.5 border rounded-lg transition-colors duration-200",
+          "w-full px-4 border rounded-lg transition-colors duration-200",
           "focus:outline-none focus:ring-2 focus:ring-[#CA993B] focus:border-transparent",
-          "appearance-none bg-white cursor-pointer",
+          props.multiple
+            ? "py-2 min-h-30 cursor-default"
+            : "py-2.5 appearance-none bg-white cursor-pointer",
           error
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 hover:border-gray-400",
           "disabled:bg-gray-100 disabled:cursor-not-allowed",
-          className
+          className,
         )}
         {...props}
       >

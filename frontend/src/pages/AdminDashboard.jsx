@@ -37,7 +37,7 @@ export default function AdminDashboard() {
     cut_type: "STRIPS",
     texture: "BUBBLY",
     drying_method: "SUN-DRIED",
-    prep_time: "READY IN 15MIN",
+    prep_time: ["READY IN 15MIN"],
     cleanliness: "HAIRLESS",
     best_for: "Perfect for soups & stews",
     rating: "4.5",
@@ -58,6 +58,11 @@ export default function AdminDashboard() {
     max_quantity: 100,
     price_per_unit: 0,
   });
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [deletingProductId, setDeletingProductId] = useState(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState(null);
+  const [isSavingWholesale, setIsSavingWholesale] = useState(false);
+  const [togglingProfileId, setTogglingProfileId] = useState(null);
 
   // Load data from Supabase
   useEffect(() => {
@@ -187,7 +192,7 @@ export default function AdminDashboard() {
 
   const handleProductSubmit = async (e) => {
     e.preventDefault();
-
+    setIsSavingProduct(true);
     try {
       const productData = {
         name: productForm.name,
@@ -205,7 +210,9 @@ export default function AdminDashboard() {
         cut_type: productForm.cut_type,
         texture: productForm.texture,
         drying_method: productForm.drying_method,
-        prep_time: productForm.prep_time,
+        prep_time: Array.isArray(productForm.prep_time)
+          ? productForm.prep_time.join(", ")
+          : "READY IN 15MIN",
         cleanliness: productForm.cleanliness,
         best_for: productForm.best_for,
         rating: parseFloat(productForm.rating),
@@ -249,7 +256,7 @@ export default function AdminDashboard() {
         cut_type: "STRIPS",
         texture: "BUBBLY",
         drying_method: "SUN-DRIED",
-        prep_time: "READY IN 15MIN",
+        prep_time: ["READY IN 15MIN"],
         cleanliness: "HAIRLESS",
         best_for: "Perfect for soups & stews",
         rating: "4.5",
@@ -267,6 +274,8 @@ export default function AdminDashboard() {
       setProducts(productsData || []);
     } catch (error) {
       console.error("Error saving product:", error.message);
+    } finally {
+      setIsSavingProduct(false);
     }
   };
 
@@ -286,7 +295,7 @@ export default function AdminDashboard() {
       cut_type: product.cut_type || "STRIPS",
       texture: product.texture || "BUBBLY",
       drying_method: product.drying_method || "SUN-DRIED",
-      prep_time: product.prep_time || "READY IN 15MIN",
+      prep_time: product.prep_time?.split(", ") || ["READY IN 15MIN"],
       cleanliness: product.cleanliness || "HAIRLESS",
       best_for: product.best_for || "Perfect for soups & stews",
       rating: product.rating?.toString() || "4.5",
@@ -303,8 +312,8 @@ export default function AdminDashboard() {
 
   const handleDeleteProduct = async (productId) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
-
-    console.log("Deleting product with ID:", productId);
+    setDeletingProductId(productId);
+    // console.log("Deleting product with ID:", productId);
 
     try {
       // adminFetch throws automatically if not ok
@@ -312,16 +321,19 @@ export default function AdminDashboard() {
         method: "DELETE",
       });
 
-      console.log("Delete successful");
+      // console.log("Delete successful");
 
       const productsData = await adminFetch(`${API_BASE_URL}/products`);
       setProducts(productsData || []);
     } catch (error) {
       console.error("Error deleting product:", error.message);
+    } finally {
+      setDeletingProductId(null);
     }
   };
 
   const toggleWholesaleApproval = async (profileId, currentValue) => {
+    setTogglingProfileId(profileId);
     try {
       await adminFetch(`${API_BASE_URL}/admin/users/${profileId}`, {
         method: "PUT",
@@ -338,10 +350,13 @@ export default function AdminDashboard() {
       );
     } catch (error) {
       console.error("Error toggling wholesale approval:", error.message);
+    } finally {
+      setTogglingProfileId(null);
     }
   };
 
   const updateOrderStatus = async (orderId, status) => {
+    setUpdatingOrderId(orderId);
     try {
       await adminFetch(`${API_BASE_URL}/orders/${orderId}`, {
         method: "PUT",
@@ -352,6 +367,8 @@ export default function AdminDashboard() {
       setOrders(ordersData || []);
     } catch (err) {
       console.error("Error updating order status:", err.message);
+    } finally {
+      setUpdatingOrderId(null);
     }
   };
 
@@ -445,6 +462,7 @@ export default function AdminDashboard() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold">Products</h2>
               <Button
+                className="cursor-pointer"
                 onClick={() => {
                   setEditingProduct(null);
                   setShowProductModal(true);
@@ -615,9 +633,12 @@ export default function AdminDashboard() {
                         size="sm"
                         variant="danger"
                         className="flex-1"
+                        disabled={deletingProductId === product.id}
                         onClick={() => handleDeleteProduct(product.id)}
                       >
-                        Delete
+                        {deletingProductId === product.id
+                          ? "Deleting..."
+                          : "Delete"}
                       </Button>
                     </div>
 
@@ -694,6 +715,7 @@ export default function AdminDashboard() {
                           { value: "cancelled", label: "Cancelled" },
                         ]}
                         className="min-w-40"
+                        disabled={updatingOrderId === order.id}
                       />
 
                       <Select
@@ -759,6 +781,7 @@ export default function AdminDashboard() {
                     {profile.account_type !== "admin" && (
                       <Button
                         size="sm"
+                        disabled={togglingProfileId === profile.id}
                         onClick={() =>
                           toggleWholesaleApproval(
                             profile.id,
@@ -766,7 +789,11 @@ export default function AdminDashboard() {
                           )
                         }
                       >
-                        {profile.wholesale_approved ? "Revoke" : "Approve"}
+                        {togglingProfileId === profile.id
+                          ? "Processing..."
+                          : profile.wholesale_approved
+                            ? "Revoke"
+                            : "Approve"}
                       </Button>
                     )}
                   </div>
@@ -880,60 +907,60 @@ export default function AdminDashboard() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
+              setIsSavingWholesale(true);
 
-              if (!wholesaleForm.product_id) {
-                alert("Please select a product");
-                return;
-              }
-
-              const DOZEN_SIZE = 12;
-
-              const data = {
-                product_id: wholesaleForm.product_id,
-                min_quantity: Number(wholesaleForm.min_quantity) * DOZEN_SIZE,
-                max_quantity:
-                  wholesaleForm.max_quantity === "" ||
-                  wholesaleForm.max_quantity === null
-                    ? null
-                    : Number(wholesaleForm.max_quantity) * DOZEN_SIZE,
-                price_per_unit: Number(wholesaleForm.price_per_unit),
-              };
-
-              // Check overlap
-              const { data: existingRanges, error: rangeError } = await supabase
-                .from("wholesale_pricing")
-                .select("id, min_quantity, max_quantity")
-                .eq("product_id", data.product_id);
-
-              if (rangeError) {
-                alert(rangeError.message);
-                return;
-              }
-
-              const overlap = existingRanges?.some((range) => {
-                if (editingWholesale && range.id === editingWholesale.id)
-                  return false;
-
-                const existingMin = range.min_quantity;
-                const existingMax =
-                  range.max_quantity === null ? Infinity : range.max_quantity;
-
-                const newMin = data.min_quantity;
-                const newMax =
-                  data.max_quantity === null ? Infinity : data.max_quantity;
-
-                return newMin <= existingMax && newMax >= existingMin;
-              });
-
-              if (overlap) {
-                alert(
-                  "Quantity range overlaps with an existing wholesale price",
-                );
-                return;
-              }
-
-              // Save
               try {
+                if (!wholesaleForm.product_id) {
+                  throw new Error("Please select a product");
+                }
+
+                const DOZEN_SIZE = 12;
+
+                const data = {
+                  product_id: wholesaleForm.product_id,
+                  min_quantity: Number(wholesaleForm.min_quantity) * DOZEN_SIZE,
+                  max_quantity:
+                    wholesaleForm.max_quantity === "" ||
+                    wholesaleForm.max_quantity === null
+                      ? null
+                      : Number(wholesaleForm.max_quantity) * DOZEN_SIZE,
+                  price_per_unit: Number(wholesaleForm.price_per_unit),
+                };
+
+                // Check overlap
+                const { data: existingRanges, error: rangeError } =
+                  await supabase
+                    .from("wholesale_pricing")
+                    .select("id, min_quantity, max_quantity")
+                    .eq("product_id", data.product_id);
+
+                if (rangeError) {
+                  throw new Error(rangeError.message);
+                }
+
+                const overlap = existingRanges?.some((range) => {
+                  if (editingWholesale && range.id === editingWholesale.id) {
+                    return false;
+                  }
+
+                  const existingMin = range.min_quantity;
+                  const existingMax =
+                    range.max_quantity === null ? Infinity : range.max_quantity;
+
+                  const newMin = data.min_quantity;
+                  const newMax =
+                    data.max_quantity === null ? Infinity : data.max_quantity;
+
+                  return newMin <= existingMax && newMax >= existingMin;
+                });
+
+                if (overlap) {
+                  throw new Error(
+                    "Quantity range overlaps with an existing wholesale price",
+                  );
+                }
+
+                // Save
                 if (editingWholesale) {
                   await adminFetch(
                     `${API_BASE_URL}/admin/wholesale/${editingWholesale.id}`,
@@ -949,13 +976,13 @@ export default function AdminDashboard() {
                   });
                 }
 
-                // Refresh wholesale data
+                // Refresh wholesale data ONCE
                 const updated = await adminFetch(
                   `${API_BASE_URL}/admin/wholesale`,
                 );
                 setWholesaleTabData(updated || []);
 
-                // Close modal & reset form
+                // Reset & close modal
                 setShowWholesaleModal(false);
                 setEditingWholesale(null);
                 setWholesaleForm({
@@ -965,35 +992,11 @@ export default function AdminDashboard() {
                   price_per_unit: 0,
                 });
               } catch (err) {
-                console.error(err);
+                console.error("Wholesale Save Error:", err);
                 alert(err.message || "Failed to save wholesale pricing");
+              } finally {
+                setIsSavingWholesale(false);
               }
-
-              // Refresh
-              const { data: updated } = await supabase
-                .from("wholesale_pricing")
-                .select(
-                  `
-      id,
-      product_id,
-      min_quantity,
-      max_quantity,
-      price_per_unit,
-      products ( name )
-    `,
-                )
-                .order("min_quantity", { ascending: true });
-
-              setWholesaleTabData(updated || []);
-
-              setShowWholesaleModal(false);
-              setEditingWholesale(null);
-              setWholesaleForm({
-                product_id: "",
-                min_quantity: 5,
-                max_quantity: 100,
-                price_per_unit: 0,
-              });
             }}
             className="space-y-4"
           >
@@ -1012,6 +1015,7 @@ export default function AdminDashboard() {
               }))}
               required
             />
+
             <Input
               label="Minimum Quantity"
               type="number"
@@ -1024,6 +1028,7 @@ export default function AdminDashboard() {
               }
               required
             />
+
             <Input
               label="Maximum Quantity (leave empty for unlimited)"
               type="number"
@@ -1048,8 +1053,15 @@ export default function AdminDashboard() {
               }
               required
             />
-            <Button type="submit" fullWidth>
-              {editingWholesale ? "Update" : "Add"}
+
+            <Button type="submit" fullWidth disabled={isSavingWholesale}>
+              {isSavingWholesale
+                ? editingWholesale
+                  ? "Updating..."
+                  : "Adding..."
+                : editingWholesale
+                  ? "Update"
+                  : "Add"}
             </Button>
           </form>
         </Modal>
@@ -1191,6 +1203,7 @@ export default function AdminDashboard() {
                   { value: "CUBES", label: "Cubes" },
                   { value: "WHOLE", label: "Whole" },
                   { value: "SHREDDED", label: "Shredded" },
+                  { value: "TRUSSED-CUBE", label: "Trussed Cube" },
                 ]}
               />
 
@@ -1222,6 +1235,7 @@ export default function AdminDashboard() {
                   { value: "SMOKED", label: "Smoked" },
                   { value: "OVEN-DRIED", label: "Oven-Dried" },
                   { value: "AIR-DRIED", label: "Air-Dried" },
+                  { value: "FRIED", label: "Fried" },
                 ]}
               />
 
@@ -1241,19 +1255,48 @@ export default function AdminDashboard() {
                 ]}
               />
 
-              <Select
-                label="Preparation Time"
-                value={productForm.prep_time}
-                onChange={(e) =>
-                  setProductForm({ ...productForm, prep_time: e.target.value })
-                }
-                options={[
-                  { value: "READY IN 15MIN", label: "Ready in 15min" },
-                  { value: "SOAK OVERNIGHT", label: "Soak Overnight" },
-                  { value: "QUICK BOIL", label: "Quick Boil" },
-                  { value: "INSTANT COOK", label: "Instant Cook" },
-                ]}
-              />
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Preparation Time
+                </label>
+
+                {[
+                  "READY IN 15MIN",
+                  "SOAK OVERNIGHT",
+                  "QUICK BOIL",
+                  "INSTANT COOK",
+                ].map((option) => (
+                  <label
+                    key={option}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      value={option}
+                      checked={productForm.prep_time.includes(option)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setProductForm({
+                            ...productForm,
+                            prep_time: [...productForm.prep_time, option],
+                          });
+                        } else {
+                          setProductForm({
+                            ...productForm,
+                            prep_time: productForm.prep_time.filter(
+                              (item) => item !== option,
+                            ),
+                          });
+                        }
+                      }}
+                      className="h-4 w-4 text-[#CA993B] border-gray-300 rounded focus:ring-[#CA993B]"
+                    />
+                    <span className="text-sm text-gray-700">
+                      {option.replace("IN ", "in ").replace("OVER", "Over")}
+                    </span>
+                  </label>
+                ))}
+              </div>
 
               <Select
                 label="Best For"
@@ -1384,8 +1427,19 @@ export default function AdminDashboard() {
               />
               <span>Featured Product</span>
             </label>
-            <Button type="submit" fullWidth className="cursor-pointer">
-              {editingProduct ? "Update Product" : "Add Product"}
+            <Button
+              type="submit"
+              fullWidth
+              disabled={isSavingProduct}
+              className="cursor-pointer"
+            >
+              {isSavingProduct
+                ? editingProduct
+                  ? "Updating..."
+                  : "Adding..."
+                : editingProduct
+                  ? "Update Product"
+                  : "Add Product"}
             </Button>
           </form>
         </Modal>
