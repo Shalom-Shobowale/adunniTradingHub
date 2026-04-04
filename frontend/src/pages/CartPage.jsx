@@ -38,7 +38,10 @@ export default function CartPage({ onNavigate }) {
         text: "Please sign in to proceed to payment",
       });
 
-      setTimeout(() => setMessage(null), 3000);
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+
       return;
     }
 
@@ -196,22 +199,25 @@ export default function CartPage({ onNavigate }) {
                       <div className="flex items-center space-x-6">
                         <div className="flex items-center border border-gray-300 rounded-xl overflow-hidden">
                           <button
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity - 1)
-                            }
-                            className="p-3 hover:bg-gray-100 transition disabled:opacity-30"
-                            disabled={item.quantity <= 1}
+                            onClick={() => {
+                              if (item.quantity > 1) {
+                                updateQuantity(item.id, item.quantity - 1);
+                              }
+                            }}
                           >
                             <Minus className="h-4 w-4" />
                           </button>
                           <div className="text-sm text-gray-600">
-                            {item.quantity} units
+                            {item.quantity}{" "}
+                            {item.product.unit_type?.toLowerCase() || "units"}
                           </div>
 
                           <button
-                            onClick={() =>
-                              updateQuantity(item.id, item.quantity + 1)
-                            }
+                            onClick={() => {
+                              if (item.quantity < item.product.stock_quantity) {
+                                updateQuantity(item.id, item.quantity + 1);
+                              }
+                            }}
                             className="p-3 hover:bg-gray-100 transition disabled:opacity-30"
                             disabled={
                               item.quantity >= item.product.stock_quantity
@@ -229,7 +235,7 @@ export default function CartPage({ onNavigate }) {
                       </div>
                       <button
                         onClick={() => removeFromCart(item.id)}
-                        className="flex items-center text-[#CA993B] hover:text-ambr-700 hover:bg-amber-50 px-4 py-2 rounded-lg transition-colors group"
+                        className="flex items-center text-[#CA993B] hover:text-amber-700 hover:bg-amber-50 px-4 py-2 rounded-lg transition-colors group"
                       >
                         <Trash2 className="h-5 w-5 mr-2 group-hover:scale-110 transition-transform" />
                         <span className="font-medium">Remove</span>

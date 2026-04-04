@@ -20,7 +20,7 @@ import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { supabase } from "../lib/supabase";
 import { formatCurrency } from "../lib/utils";
-import { DOZEN_SIZE, BAG_SIZE } from "../lib/purchaseRules";
+import { BAG_SIZE } from "../lib/purchaseRules";
 import { useAuth } from "../contexts/useAuth";
 import { useCart } from "../contexts/useCart";
 import { useNavigate, useParams } from "react-router-dom";
@@ -31,7 +31,7 @@ export default function ProductDetailPage() {
   const [product, setProduct] = useState(null);
   const [wholesalePricing, setWholesalePricing] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dozens, setDozens] = useState(1); // retail
+  const [quantity, setQuantity] = useState(1); // retail
   const [bags, setBags] = useState(1); // wholesale
 
   const [addingToCart, setAddingToCart] = useState(false);
@@ -46,10 +46,13 @@ export default function ProductDetailPage() {
     loadProduct();
   }, [productId]);
 
+  const unitSize = product?.unit_size || 12;
+  const unitType = product?.unit_type || "DOZEN";
+
   // note that quantity here is in units
   const finalQuantity = isWholesaleApproved
     ? bags * BAG_SIZE // 1 bag = 1200 units
-    : dozens * DOZEN_SIZE; // 1 dozen = 12 units
+    : quantity * unitSize; // 1 dozen = 12 units
 
   const loadProduct = async () => {
     try {
@@ -228,7 +231,6 @@ export default function ProductDetailPage() {
       ? images.map((img) => (typeof img === "string" ? img : img?.url))
       : ["https://images.pexels.com/photos/4113773/pexels-photo-4113773.jpeg"];
 
-
   const activeTierPrice = getWholesalePrice(finalQuantity, wholesalePricing);
 
   const unitPrice = activeTierPrice ?? product.retail_price;
@@ -402,10 +404,10 @@ export default function ProductDetailPage() {
 
                     {/* Price Breakdown */}
                     <div className="text-sm text-gray-600 mt-1">
-                      {formatCurrency(unitPrice)} per unit ×{" "}
+                      {formatCurrency(unitPrice * unitSize)} per {unitType.toLowerCase()}
                       {isWholesaleApproved
                         ? `${bags} bag(s)`
-                        : `${dozens} dozen`}
+                        : `${quantity} ${unitType.toLowerCase()}`}
                     </div>
 
                     <p className="text-xs text-gray-500 mt-1">
@@ -449,12 +451,20 @@ export default function ProductDetailPage() {
                     {!isWholesaleApproved && (
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Quantity (Dozen)
+                          Quantity (
+                          {unitType === "BUNCH"
+                            ? "Bunch"
+                            : unitType === "DOZEN"
+                              ? "Dozen"
+                              : "Unit"}
+                          )
                         </label>
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
-                            onClick={() => setDozens((d) => Math.max(1, d - 1))}
+                            onClick={() =>
+                              setQuantity((q) => Math.max(1, q - 1))
+                            }
                             className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
                           >
                             −
@@ -462,14 +472,14 @@ export default function ProductDetailPage() {
 
                           <Input
                             type="number"
-                            value={dozens}
+                            value={quantity}
                             readOnly
                             className="w-20 text-center"
                           />
 
                           <button
                             type="button"
-                            onClick={() => setDozens((d) => d + 1)}
+                            onClick={() => setQuantity((d) => d + 1)}
                             className="px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200"
                           >
                             +
@@ -477,7 +487,8 @@ export default function ProductDetailPage() {
                         </div>
 
                         <p className="text-xs text-gray-500 mt-1">
-                          {dozens} dozen = {dozens * DOZEN_SIZE} units
+                          {quantity} {unitType.toLowerCase()} ={" "}
+                          {quantity * unitSize} units
                         </p>
                       </div>
                     )}
@@ -514,7 +525,7 @@ export default function ProductDetailPage() {
                         </div>
 
                         <p className="text-xs text-gray-500 mt-1">
-                          {bags} bag = {bags * BAG_SIZE} units
+                          {bags} bag(s) = {bags * BAG_SIZE} units
                         </p>
                       </div>
                     )}
@@ -636,20 +647,38 @@ export default function ProductDetailPage() {
                 </h3>
                 <div className="space-y-3">
                   {wholesalePricing.map((tier) => {
+                    const unitLabel =
+                      unitType === "BUNCH"
+                        ? "bunches"
+                        : unitType === "DOZEN"
+                          ? "dozen"
+                          : "units";
+
                     const isActiveTier =
-                      activeTierPrice === tier.price_per_unit;
+                      finalQuantity >= tier.min_quantity &&
+                      (!tier.max_quantity ||
+                        finalQuantity <= tier.max_quantity);
 
                     return (
                       <div key={tier.id} className="p-4 border rounded-lg">
                         <div className="flex justify-between">
                           <span>
-                            {tier.min_quantity / 12} –{" "}
-                            {tier.max_quantity ? tier.max_quantity / 12 : "∞"}{" "}
-                            dozen
+                            {Math.ceil(tier.min_quantity / unitSize)} –{" "}
+                            {tier.max_quantity
+                              ? Math.floor(tier.max_quantity / unitSize)
+                              : "∞"}{" "}
+                            {unitLabel}
                           </span>
-                          <span className="font-bold">
-                            {formatCurrency(tier.price_per_unit)}/ dozen
-                          </span>
+
+                          <div className="text-right">
+                            <span className="font-bold">
+                              {formatCurrency(tier.price_per_unit * unitSize)} /{" "}
+                              {unitLabel}
+                            </span>
+                            <p className="text-xs text-gray-500">
+                              {formatCurrency(tier.price_per_unit)} per unit
+                            </p>
+                          </div>
                         </div>
 
                         {isActiveTier && (

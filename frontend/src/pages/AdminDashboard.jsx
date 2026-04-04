@@ -8,6 +8,7 @@ import { Select } from "../components/ui/Select";
 import { Modal } from "../components/ui/Modal";
 import { supabase } from "../lib/supabase";
 import { API_BASE_URL } from "../config/api";
+import { UNIT_TYPES } from "../lib/purchaseRules";
 import { formatCurrency, generateSlug } from "../lib/utils";
 
 export default function AdminDashboard() {
@@ -48,6 +49,8 @@ export default function AdminDashboard() {
     seller_trust: "",
     featured_badge: "",
     active: true,
+    unit_type: "DOZEN",
+    unit_size: UNIT_TYPES.DOZEN,
   });
   const [wholesaleTabData, setWholesaleTabData] = useState([]);
   const [showWholesaleModal, setShowWholesaleModal] = useState(false);
@@ -223,6 +226,8 @@ export default function AdminDashboard() {
         seller_trust: productForm.seller_trust,
         featured_badge: productForm.featured_badge,
         active: productForm.active,
+        unit_type: productForm.unit_type,
+        unit_size: Number(productForm.unit_size) || UNIT_TYPES.DOZEN,
       };
 
       // ✅ CREATE or UPDATE
@@ -267,6 +272,8 @@ export default function AdminDashboard() {
         seller_trust: "",
         featured_badge: "",
         active: true,
+        unit_type: "DOZEN",
+        unit_size: UNIT_TYPES.DOZEN,
       });
 
       // ✅ RELOAD PRODUCTS (adminFetch already returns JSON)
@@ -306,6 +313,8 @@ export default function AdminDashboard() {
       seller_trust: product.seller_trust || "",
       featured_badge: product.featured_badge || "",
       active: product.active ?? true,
+      unit_type: product.unit_type || "DOZEN",
+      unit_size: product.unit_size || 12,
     });
     setShowProductModal(true);
   };
@@ -814,75 +823,97 @@ export default function AdminDashboard() {
             </div>
 
             <div className="space-y-4">
-              {wholesaleTabData.map((item) => (
-                <Card
-                  key={item.id}
-                  className="flex justify-between items-center p-4"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      Product: {item.products?.name}
-                    </p>
-                    <p>
-                      Qty: {item.min_quantity} – {item.max_quantity}
-                    </p>
-                    <p className="font-bold text-[#CA993B]">
-                      ₦{item.price_per_unit}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => {
-                        setEditingWholesale(item);
-                        const DOZEN_SIZE = 12;
-                        setWholesaleForm({
-                          product_id: item.product_id,
-                          min_quantity: item.min_quantity / DOZEN_SIZE,
-                          max_quantity:
-                            item.max_quantity === null
-                              ? null
-                              : item.max_quantity / DOZEN_SIZE,
-                          price_per_unit: item.price_per_unit,
-                        });
+              {wholesaleTabData.map((item) => {
+                const unitSize = item.products?.unit_size || 12;
+                const unitType = item.products?.unit_type || "DOZEN";
 
-                        setShowWholesaleModal(true);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="danger"
-                      onClick={async () => {
-                        try {
-                          await adminFetch(
-                            `${API_BASE_URL}/admin/wholesale/${item.id}`,
-                            {
-                              method: "DELETE",
-                            },
-                          );
-                          setWholesaleTabData((prev) =>
-                            prev.filter((w) => w.id !== item.id),
-                          );
-                        } catch (err) {
-                          console.error(
-                            "Error deleting wholesale entry:",
-                            err.message,
-                          );
-                          alert("Failed to delete wholesale entry");
-                        }
+                const minQty = item.min_quantity / unitSize;
+                const maxQty =
+                  item.max_quantity === null
+                    ? "∞"
+                    : item.max_quantity / unitSize;
 
-                        setWholesaleTabData((prev) =>
-                          prev.filter((w) => w.id !== item.id),
-                        );
-                      }}
-                    >
-                      Delete
-                    </Button>
-                  </div>
-                </Card>
-              ))}
+                const unitLabel =
+                  unitType === "BUNCH"
+                    ? "bunches"
+                    : unitType === "DOZEN"
+                      ? "dozen"
+                      : "units";
+
+                return (
+                  <Card
+                    key={item.id}
+                    className="flex justify-between items-center p-4"
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        Product: {item.products?.name}
+                      </p>
+
+                      {/* ✅ FIXED DISPLAY */}
+                      <p>
+                        Qty: {minQty} – {maxQty} {unitLabel}
+                      </p>
+
+                      <p className="font-bold text-[#CA993B]">
+                        ₦{item.price_per_unit}
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => {
+                          setEditingWholesale(item);
+
+                          const unitSize = item.products?.unit_size || 12;
+
+                          setWholesaleForm({
+                            product_id: item.product_id,
+                            min_quantity: item.min_quantity / unitSize,
+                            max_quantity:
+                              item.max_quantity === null
+                                ? null
+                                : item.max_quantity / unitSize,
+                            price_per_unit: item.price_per_unit,
+                          });
+
+                          setShowWholesaleModal(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        onClick={async () => {
+                          try {
+                            await adminFetch(
+                              `${API_BASE_URL}/admin/wholesale/${item.id}`,
+                              {
+                                method: "DELETE",
+                              },
+                            );
+
+                            setWholesaleTabData((prev) =>
+                              prev.filter((w) => w.id !== item.id),
+                            );
+                          } catch (err) {
+                            console.error(
+                              "Error deleting wholesale entry:",
+                              err.message,
+                            );
+                            alert("Failed to delete wholesale entry");
+                          }
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </Card>
+                );
+              })}
             </div>
           </div>
         )}
@@ -914,16 +945,20 @@ export default function AdminDashboard() {
                   throw new Error("Please select a product");
                 }
 
-                const DOZEN_SIZE = 12;
+                const selectedProduct = products.find(
+                  (p) => p.id === wholesaleForm.product_id,
+                );
+
+                const unitSize = selectedProduct?.unit_size || 1;
 
                 const data = {
                   product_id: wholesaleForm.product_id,
-                  min_quantity: Number(wholesaleForm.min_quantity) * DOZEN_SIZE,
+                  min_quantity: Number(wholesaleForm.min_quantity) * unitSize,
                   max_quantity:
                     wholesaleForm.max_quantity === "" ||
                     wholesaleForm.max_quantity === null
                       ? null
-                      : Number(wholesaleForm.max_quantity) * DOZEN_SIZE,
+                      : Number(wholesaleForm.max_quantity) * unitSize,
                   price_per_unit: Number(wholesaleForm.price_per_unit),
                 };
 
@@ -1111,6 +1146,24 @@ export default function AdminDashboard() {
                   weight_per_unit: e.target.value,
                 })
               }
+            />
+            <Select
+              label="Selling Unit"
+              value={productForm.unit_type}
+              onChange={(e) => {
+                const type = e.target.value;
+
+                setProductForm({
+                  ...productForm,
+                  unit_type: type,
+                  unit_size: UNIT_TYPES[type] || 1,
+                });
+              }}
+              options={[
+                { value: "DOZEN", label: "Dozen (12 units)" },
+                { value: "BUNCH", label: "Bunch (160 units)" },
+                { value: "UNIT", label: "Single Unit" },
+              ]}
             />
             <Input
               label="Retail Price"

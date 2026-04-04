@@ -1,8 +1,6 @@
 import express from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
 import dotenv from "dotenv";
-
+import cors from "cors";
 import sendWholesaleEmailRouter from "./sendWholesaleEmail.js";
 import sendPaymentEmail from "./sendPaymentEmail.js";
 import product from "./routes/product.js";
@@ -14,36 +12,32 @@ import adminWholesale from "./routes/adminWholesale.js";
 dotenv.config();
 
 const app = express();
+app.use(express.json());
 
 // Allowed frontend origins
+
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  "http://localhost:3000",
+  "https://adunnitradinghub.com",
+  "https://www.adunnitradinghub.com",
   "http://localhost:5173",
-].filter(Boolean);
+  "http://localhost:3000",
+];
 
-// ---------------- CORS ----------------
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (!origin || allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-  }
-
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-  );
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204); // handle preflight
-  }
-
-  next();
-});
-
-app.use(bodyParser.json());
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 // Routes
 app.use("/sendWholesaleEmail", sendWholesaleEmailRouter);

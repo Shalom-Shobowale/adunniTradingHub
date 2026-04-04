@@ -8,6 +8,7 @@ import { useCart } from "../contexts/useCart";
 import { useAuth } from "../contexts/useAuth";
 import { formatCurrency } from "../lib/utils";
 import { API_BASE_URL } from "../config/api";
+import { supabase } from "../lib/supabase"; // ✅ FIX: missing import
 
 export default function CheckoutPage({ onNavigate }) {
   const {
@@ -76,47 +77,97 @@ export default function CheckoutPage({ onNavigate }) {
     "Zamfara",
     "FCT",
   ];
+
   /* ------------------ OPTIONAL AUTO-ZONE LOGIC ------------------ */
   useEffect(() => {
+    if (!shippingInfo.state) return;
+
     if (shippingInfo.state === "Lagos") {
-      setDeliveryZone("lagos_island"); // default
-    } else if (shippingInfo.state) {
+      if (!deliveryZone) {
+        setDeliveryZone("lagos_island"); // ✅ only set if not already chosen
+      }
+    } else {
       setDeliveryZone("interstate");
     }
-  }, [shippingInfo.state, setDeliveryZone]);
-  
+  }, [shippingInfo.state, deliveryZone, setDeliveryZone]); // ✅ FIX: added deliveryZone
+
   // 🚫 No checkout with empty cart
-  if (cart.length === 0) {
-    onNavigate("cart");
-    return null;
-  }
+  useEffect(() => {
+    if (cart.length === 0) {
+      onNavigate("cart");
+    }
+  }, [cart.length, onNavigate]);
+
+  if (cart.length === 0) return null;
 
   /* ------------------ SUBMIT ORDER ------------------ */
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (processing) return;
+
     setError("");
     setProcessing(true);
 
     try {
       if (!user) throw new Error("You must be logged in to checkout.");
 
+      // ✅ Basic validation
+      if (
+        !shippingInfo.full_name ||
+        !shippingInfo.phone ||
+        !shippingInfo.street_address ||
+        !shippingInfo.state
+      ) {
+        throw new Error("Please fill all required fields");
+      }
+
+      // ✅ Nigerian phone validation
+      const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
+      if (!phoneRegex.test(shippingInfo.phone)) {
+        throw new Error("Enter a valid Nigerian phone number");
+      }
+
+      // ✅ Get auth token
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const token = session?.access_token;
+      if (!token)
+        throw new Error("Authentication expired. Please log in again.");
+
+      // ✅ Safe cart (no price tampering)
+      const safeCart = cart.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+      }));
+
       const res = await fetch(`${API_BASE_URL}/orders/create`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
-          userId: user.id,
-          cart,
+          cart: safeCart,
           shippingInfo,
           deliveryZone,
           paymentMethod,
-          subtotal: cartTotal,
-          shippingCost,
-          total,
         }),
       });
 
+      // ✅ Handle bad responses
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || "Failed to create order");
+      }
+
       const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Order creation failed");
+
+      if (!data.success) {
+        throw new Error(data.error || "Order creation failed");
+      }
 
       await clearCart();
 
@@ -144,7 +195,7 @@ export default function CheckoutPage({ onNavigate }) {
 
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* ------------------ LEFT ------------------ */}
+            {/* LEFT */}
             <div className="lg:col-span-2 space-y-6">
               <Card>
                 <div className="flex items-center space-x-2 mb-6">
@@ -257,7 +308,7 @@ export default function CheckoutPage({ onNavigate }) {
               </Card>
             </div>
 
-            {/* ------------------ RIGHT ------------------ */}
+            {/* RIGHT */}
             <div className="lg:col-span-1">
               <Card className="sticky top-24">
                 <div className="flex items-center space-x-2 mb-6">
