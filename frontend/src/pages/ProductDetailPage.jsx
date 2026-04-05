@@ -452,8 +452,8 @@ export default function ProductDetailPage() {
                       <div className="flex-1">
                         <label className="block text-sm font-medium text-gray-700 mb-2">
                           Quantity (
-                          {unitType === "BUNCH"
-                            ? "Bunch"
+                          {unitType === "BUNDLE"
+                            ? "Bundle"
                             : unitType === "DOZEN"
                               ? "Dozen"
                               : "Unit"}

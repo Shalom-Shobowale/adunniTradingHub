@@ -834,8 +834,8 @@ export default function AdminDashboard() {
                     : item.max_quantity / unitSize;
 
                 const unitLabel =
-                  unitType === "BUNCH"
-                    ? "bunches"
+                  unitType === "BUNDLE"
+                    ? "bundles"
                     : unitType === "DOZEN"
                       ? "dozen"
                       : "units";
@@ -1161,7 +1161,7 @@ export default function AdminDashboard() {
               }}
               options={[
                 { value: "DOZEN", label: "Dozen (12 units)" },
-                { value: "BUNCH", label: "Bunch (160 units)" },
+                { value: "BUNDLE", label: "Bundle (160 units)" },
                 { value: "UNIT", label: "Single Unit" },
               ]}
             />
