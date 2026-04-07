@@ -1,8 +1,30 @@
+import { useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle, Package } from "lucide-react";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 
-export default function OrderConfirmationPage({ orderNumber, onNavigate }) {
+export default function OrderConfirmationPage() {
+  const navigate = useNavigate();
+  const { state } = useLocation(); // ✅ get state from navigate
+  const { orderNumber } = state || {};
+
+  if (!orderNumber) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600 text-lg">
+          No order found. Please go back to{" "}
+          <span
+            className="font-bold cursor-pointer text-[#CA993B]"
+            onClick={() => navigate("/products")}
+          >
+            home
+          </span>
+          .
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-16">
       <div className="max-w-2xl mx-auto px-4">
@@ -57,13 +79,13 @@ export default function OrderConfirmationPage({ orderNumber, onNavigate }) {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4">
-            <Button fullWidth onClick={() => onNavigate("dashboard")}>
+            <Button fullWidth onClick={() => navigate("/my-orders")}>
               View My Orders
             </Button>
             <Button
               fullWidth
               variant="outline"
-              onClick={() => onNavigate("home")}
+              onClick={() => navigate("/products")}
             >
               Continue Shopping
             </Button>

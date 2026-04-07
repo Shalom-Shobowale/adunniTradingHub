@@ -8,9 +8,13 @@ import { useCart } from "../contexts/useCart";
 import { useAuth } from "../contexts/useAuth";
 import { formatCurrency } from "../lib/utils";
 import { API_BASE_URL } from "../config/api";
-import { supabase } from "../lib/supabase"; // ✅ FIX: missing import
+import { supabase } from "../lib/supabase";
+import { useNavigate } from "react-router-dom";
 
-export default function CheckoutPage({ onNavigate }) {
+// console.log("API URL:", `${API_BASE_URL}/orders/create`);
+
+export default function CheckoutPage() {
+  const navigate = useNavigate();
   const {
     cart,
     cartTotal,
@@ -24,6 +28,7 @@ export default function CheckoutPage({ onNavigate }) {
   const { user } = useAuth();
 
   const [processing, setProcessing] = useState(false);
+  const [justSubmitted, setJustSubmitted] = useState(false);
   const [error, setError] = useState("");
 
   const [shippingInfo, setShippingInfo] = useState({
@@ -93,10 +98,10 @@ export default function CheckoutPage({ onNavigate }) {
 
   // 🚫 No checkout with empty cart
   useEffect(() => {
-    if (cart.length === 0) {
-      onNavigate("cart");
+    if (!justSubmitted && cart.length === 0) {
+      navigate("/cart");
     }
-  }, [cart.length, onNavigate]);
+  }, [cart.length, navigate, justSubmitted]);
 
   if (cart.length === 0) return null;
 
@@ -150,10 +155,13 @@ export default function CheckoutPage({ onNavigate }) {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          userId: user.id,
           cart: safeCart,
           shippingInfo,
-          deliveryZone,
           paymentMethod,
+          subtotal: cartTotal,
+          shippingCost,
+          total,
         }),
       });
 
@@ -170,10 +178,12 @@ export default function CheckoutPage({ onNavigate }) {
       }
 
       await clearCart();
-
-      onNavigate("order-confirmation", {
-        orderId: data.orderId,
-        orderNumber: data.orderNumber,
+      setJustSubmitted(true); // flag to prevent redirect
+      navigate("/order-confirmation", {
+        state: {
+          orderId: data.orderId,
+          orderNumber: data.orderNumber,
+        },
       });
     } catch (err) {
       setError(err.message || "Failed to process order.");

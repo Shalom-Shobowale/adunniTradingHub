@@ -15,6 +15,7 @@ import OrderConfirmationPage from "./pages/OrderConfirmationPage";
 import WishlistPage from "./pages/WishlistPage";
 import AuthCallback from "./pages/AuthCallback";
 import ScrollToTop from "./components/ScrollToTop";
+import MyOrdersPage from "./pages/MyOrdersPage";
 
 import { Header } from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";
@@ -30,13 +31,17 @@ function App() {
             <Routes>
               <Route path="/" element={<HomePage />} />
               <Route path="/products" element={<ProductsPage />} />
-              <Route path="/product/:productId" element={<ProductDetailPage />} />
+              <Route
+                path="/product/:productId"
+                element={<ProductDetailPage />}
+              />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/wholesale" element={<WholesalePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/about" element={<AboutPage />} />
+              <Route path="/my-orders" element={<MyOrdersPage />} />
               <Route path="/wishlist" element={<WishlistPage />} />
               <Route
                 path="/order-confirmation"

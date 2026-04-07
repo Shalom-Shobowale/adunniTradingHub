@@ -565,7 +565,7 @@ export default function ProductDetailPage() {
                 <ChefHat className="h-5 w-5 mr-2 text-[#CA993B]" />
                 Product Description
               </h3>
-              <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+              <p className="text-gray-700 leading-relaxed whitespace-pre-line text-justify">
                 {product.description}
               </p>
               {product.best_for && (

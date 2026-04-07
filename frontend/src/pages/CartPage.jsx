@@ -16,7 +16,7 @@ import { formatCurrency } from "../lib/utils";
 import { useAuth } from "../contexts/useAuth";
 import { useState } from "react";
 
-export default function CartPage({ onNavigate }) {
+export default function CartPage() {
   const {
     cart,
     updateQuantity,
@@ -84,7 +84,7 @@ export default function CartPage({ onNavigate }) {
           </p>
           <Button
             size="lg"
-            onClick={() => onNavigate("/products")}
+            onClick={() => navigate("/products")}
             className="bg-[#CA993B] hover:bg-[#B8852F] shadow-lg hover:shadow-xl transition-all"
           >
             Browse Premium Ponmo
@@ -201,7 +201,7 @@ export default function CartPage({ onNavigate }) {
                           <button
                             onClick={() => {
                               if (item.quantity > 1) {
-                                updateQuantity(item.id, item.quantity - 1);
+                                updateQuantity(item.id, item.quantity - 12);
                               }
                             }}
                           >
@@ -215,7 +215,7 @@ export default function CartPage({ onNavigate }) {
                           <button
                             onClick={() => {
                               if (item.quantity < item.product.stock_quantity) {
-                                updateQuantity(item.id, item.quantity + 1);
+                                updateQuantity(item.id, item.quantity + 12);
                               }
                             }}
                             className="p-3 hover:bg-gray-100 transition disabled:opacity-30"
@@ -361,7 +361,7 @@ export default function CartPage({ onNavigate }) {
 
               {/* Continue Shopping */}
               <button
-                onClick={() => onNavigate("/products")}
+                onClick={() => navigate("/products")}
                 className="w-full text-center mt-8 pt-6 border-t border-gray-200 text-gray-600 hover:text-[#CA993B] font-medium transition flex items-center justify-center group"
               >
                 <svg
