@@ -23,7 +23,7 @@ export  const Textarea = forwardRef(function Textarea(
             ? "border-red-500 focus:ring-red-500"
             : "border-gray-300 hover:border-gray-400",
           "disabled:bg-gray-100 disabled:cursor-not-allowed",
-          "resize-vertical min-h-[100px]",
+          "resize-vertical min-h-25",
           className
         )}
         {...props}
