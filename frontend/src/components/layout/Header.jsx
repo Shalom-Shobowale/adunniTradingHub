@@ -30,7 +30,7 @@ export function Header() {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/"); // redirect to homepage
+    navigate("/"); 
   };
 
   const navLinks = [
@@ -45,12 +45,12 @@ export function Header() {
       <header className="bg-white shadow-md sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            {/* Logo */}
+         
             <Link to="/" className="flex items-center">
               <img src="/logo1.png" alt="Adunni Trading Hub" className="h-24" />
             </Link>
 
-            {/* Desktop Navigation */}
+          
             <nav className="hidden md:flex space-x-8">
               {navLinks.map((link) => (
                 <NavLink
@@ -69,9 +69,8 @@ export function Header() {
               ))}
             </nav>
 
-            {/* Right Actions */}
             <div className="hidden md:flex items-center space-x-4">
-              {/* Cart (always visible) */}
+             
               <Link
                 to="/cart"
                 className="relative p-2 hover:bg-gray-100 rounded-full transition"
@@ -84,7 +83,6 @@ export function Header() {
                 )}
               </Link>
 
-              {/* Wishlist (always visible) */}
               {user ? (
                 <Link
                   to="/wishlist"
@@ -102,7 +100,6 @@ export function Header() {
                 </button>
               )}
 
-              {/* Account section */}
               {user ? (
                 <div className="relative group">
                   <button className="flex items-center space-x-2 p-2 hover:bg-gray-100 rounded-lg transition">

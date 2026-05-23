@@ -16,6 +16,7 @@ import WishlistPage from "./pages/WishlistPage";
 import AuthCallback from "./pages/AuthCallback";
 import ScrollToTop from "./components/ScrollToTop";
 import MyOrdersPage from "./pages/MyOrdersPage";
+import LoginPage from "./pages/LoginPage";
 
 import { Header } from "./components/layout/Header";
 import { Footer } from "./components/layout/Footer";
@@ -43,6 +44,7 @@ function App() {
               <Route path="/about" element={<AboutPage />} />
               <Route path="/my-orders" element={<MyOrdersPage />} />
               <Route path="/wishlist" element={<WishlistPage />} />
+              <Route path="/login" element={<LoginPage />} />
               <Route
                 path="/order-confirmation"
                 element={<OrderConfirmationPage />}

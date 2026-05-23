@@ -11,7 +11,6 @@ import { API_BASE_URL } from "../config/api";
 import { supabase } from "../lib/supabase";
 import { useNavigate } from "react-router-dom";
 
-// console.log("API URL:", `${API_BASE_URL}/orders/create`);
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -83,7 +82,7 @@ export default function CheckoutPage() {
     "FCT",
   ];
 
-  /* ------------------ OPTIONAL AUTO-ZONE LOGIC ------------------ */
+
   useEffect(() => {
     if (!shippingInfo.state) return;
 
@@ -96,7 +95,7 @@ export default function CheckoutPage() {
     }
   }, [shippingInfo.state, deliveryZone, setDeliveryZone]); // ✅ FIX: added deliveryZone
 
-  // 🚫 No checkout with empty cart
+ 
   useEffect(() => {
     if (!justSubmitted && cart.length === 0) {
       navigate("/cart");
@@ -105,7 +104,7 @@ export default function CheckoutPage() {
 
   if (cart.length === 0) return null;
 
-  /* ------------------ SUBMIT ORDER ------------------ */
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -117,7 +116,6 @@ export default function CheckoutPage() {
     try {
       if (!user) throw new Error("You must be logged in to checkout.");
 
-      // ✅ Basic validation
       if (
         !shippingInfo.full_name ||
         !shippingInfo.phone ||
@@ -127,13 +125,12 @@ export default function CheckoutPage() {
         throw new Error("Please fill all required fields");
       }
 
-      // ✅ Nigerian phone validation
+      
       const phoneRegex = /^(\+234|0)[789][01]\d{8}$/;
       if (!phoneRegex.test(shippingInfo.phone)) {
         throw new Error("Enter a valid Nigerian phone number");
       }
 
-      // ✅ Get auth token
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -142,7 +139,7 @@ export default function CheckoutPage() {
       if (!token)
         throw new Error("Authentication expired. Please log in again.");
 
-      // ✅ Safe cart (no price tampering)
+
       const safeCart = cart.map((item) => ({
         product_id: item.product.id,
         quantity: item.quantity,
@@ -165,7 +162,7 @@ export default function CheckoutPage() {
         }),
       });
 
-      // ✅ Handle bad responses
+    
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || "Failed to create order");
@@ -178,7 +175,7 @@ export default function CheckoutPage() {
       }
 
       await clearCart();
-      setJustSubmitted(true); // flag to prevent redirect
+      setJustSubmitted(true); 
       navigate("/order-confirmation", {
         state: {
           orderId: data.orderId,

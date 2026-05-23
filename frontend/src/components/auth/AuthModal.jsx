@@ -114,11 +114,10 @@ export function AuthModal({ isOpen, onClose, mode, onSwitchMode }) {
       isOpen={isOpen}
       onClose={onClose}
       size="lg"
-      showSideImage={true} // ✅ THIS IS THE KEY FIX
+      showSideImage={true} 
       title={mode === "login" ? "Sign In" : "Create Account"}
     >
       <div className="max-w-md mx-auto">
-        {/* Logo */}
         <div className="flex justify-center mb-4">
           <img
             src="/logo1.png"
