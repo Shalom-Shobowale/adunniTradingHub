@@ -563,7 +563,7 @@ export default function HomePage() {
               </span>
             </div>
 
-            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight">
+            <h2 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4 tracking-tight font-vibes">
               What Our{" "}
               <span className="text-transparent bg-clip-text bg-linear-to-r from-[#CA993B] to-[#E8B85A]">
                 Customers Say
