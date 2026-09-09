@@ -115,7 +115,7 @@ export default function ProductsPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-2 font-vibes">
             Our Products
           </h1>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 text-sm md:text-lg">
             Browse our selection of premium quality dried cow skin
           </p>
         </div>

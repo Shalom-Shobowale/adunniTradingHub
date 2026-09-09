@@ -114,7 +114,7 @@ export default function HomePage() {
               </span>
             </h1>
 
-            <p className="text-lg md:text-xl text-gray-300 mb-8 leading-relaxed max-w-xl">
+            <p className="text-sm md:text-lg text-gray-300 mb-8 leading-relaxed max-w-xl">
               Your trusted supplier for retail and wholesale orders. We deliver
               excellence in every package, nationwide.
             </p>
@@ -235,7 +235,7 @@ export default function HomePage() {
                   <Package className="h-8 w-8 text-white" />
                 </div>
               </div>
-              <h3 className="text-xl font-bold mb-2">Premium Quality</h3>
+              <h3 className="text-sm font-bold mb-2">Premium Quality</h3>
               <p className="text-gray-600">
                 Carefully selected and processed dried cow skin that meets the
                 highest standards.
@@ -279,7 +279,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold font-vibes mb-4">
               Featured Products
             </h2>
-            <p className="text-gray-600 text-lg">
+            <p className="text-gray-600 text-sm md:text-lg max-w-2xl mx-auto">
               Discover our premium selection of dried cow skin
             </p>
           </div>
@@ -569,7 +569,7 @@ export default function HomePage() {
                 Customers Say
               </span>
             </h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            <p className="text-sm md:text-lg text-gray-600 max-w-2xl mx-auto">
               Don't just take our word for it — hear from our satisfied
               customers
             </p>
@@ -685,7 +685,7 @@ export default function HomePage() {
             <h2 className="text-3xl md:text-4xl font-bold mb-4 font-vibes">
               Need Bulk Orders?
             </h2>
-            <p className="text-xl mb-8 opacity-90">
+            <p className="text-lg md:text-sm mb-8 opacity-90">
               Get special wholesale pricing and dedicated support for your
               business
             </p>
