@@ -35,7 +35,7 @@ export default function AboutPage() {
           <h1 className="text-5xl md:text-7xl font-bold mb-6 font-serif tracking-tight">
             About Adunni Trading Hub
           </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+          <p className="text-sm text-gray-300 max-w-2xl mx-auto">
             Your trusted partner for premium quality dried cow skin in Nigeria
           </p>
         </div>
@@ -53,7 +53,7 @@ export default function AboutPage() {
               />
               <div className="absolute inset-0 bg-linear-to-r from-black/20 to-transparent"></div>
             </div>
-            <div className="p-8 md:p-12 bg-white">
+            <div className="p-0 md:p-12 bg-white">
               <div className="my-6">
                 <span className="text-[#CA993B] text-sm font-semibold tracking-wider uppercase">
                   Our Heritage

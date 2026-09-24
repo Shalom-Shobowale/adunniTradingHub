@@ -134,7 +134,7 @@ export default function WholesalePage({ onNavigate }) {
         <h1 className="text-4xl md:text-5xl font-bold mb-4 font-vibes">
           Wholesale & Trade Orders
         </h1>
-        <p className="text-xl opacity-90 max-w-2xl mx-auto">
+        <p className="text-sm opacity-90 max-w-2xl mx-auto">
           For restaurants, caterers, food vendors, and bulk buyers who need
           consistent supply, better pricing, and priority service.
         </p>
